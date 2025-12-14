@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suggestion Box - WAG Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-effect { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.1); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .suggestion-card { transition: all 0.3s ease; border-left: 4px solid transparent; }
+        .suggestion-card.operations { border-left-color: #3B82F6; }
+        .suggestion-card.hr { border-left-color: #EF4444; }
+        .suggestion-card.facilities { border-left-color: #10B981; }
+        .suggestion-card.technology { border-left-color: #8B5CF6; }
+        .vote-btn { transition: all 0.2s ease; }
+        .vote-btn:hover { transform: scale(1.05); }
+        .vote-btn.voted { background-color: #10B981; color: white; }
+        .status-pending { background: linear-gradient(135deg, #FEF3C7, #FDE68A); }
+        .status-review { background: linear-gradient(135deg, #DBEAFE, #BFDBFE); }
+        .status-implemented { background: linear-gradient(135deg, #D1FAE5, #A7F3D0); }
+        .status-rejected { background: linear-gradient(135deg, #FEE2E2, #FECACA); }
+        .popular-badge { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-2xl font-bold text-slate-800">WAG Portal</h1>
+                    </div>
+                </div>
+                
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="index.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Dashboard</a>
+                        <a href="defect-tracker.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Defect Tracker</a>
+                        <a href="leave-request.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Leave Request</a>
+                        <a href="facility-reservation.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Facility Booking</a>
+                        <a href="tech-board.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Tech Board</a>
+                        <a href="suggestion-box.html" class="bg-yellow-100 text-yellow-700 px-3 py-2 rounded-md text-sm font-medium">Suggestion Box</a>
+                        <a href="office-pulse.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Office Pulse</a>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <button id="roleToggle" class="bg-emerald-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-600 transition-colors">
+                        Switch to Manager
+                    </button>
+                    <div class="relative">
+                        <button id="notificationBtn" class="p-2 text-slate-600 hover:text-slate-800 relative">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M9 11h.01M9 8h.01"></path>
+                            </svg>
+                            <span id="notificationBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <img id="userAvatar" class="h-8 w-8 rounded-full" src="./resources/user-avatars/avatar-1.jpg" alt="User Avatar">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <div class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-slate-800">Suggestion Box</h1>
+                    <p class="text-slate-600 mt-2">Share your ideas and vote on suggestions to improve our workplace</p>
+                </div>
+                <button id="newSuggestionBtn" class="bg-yellow-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-yellow-600 transition-colors flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Submit Suggestion
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popular Suggestions Carousel -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6">Popular Suggestions</h2>
+            <div class="splide" id="popularCarousel">
+                <div class="splide__track">
+                    <ul class="splide__list" id="popularList">
+                        <!-- Popular suggestions will be populated by JavaScript -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Suggestions</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="totalSuggestions">28</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">This Week</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="thisWeek">8</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-100 text-green-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Implemented</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="implemented">12</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Active Users</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="activeUsers">24</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                <!-- Search -->
+                <div class="flex-1 max-w-md">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        <input id="searchInput" type="text" placeholder="Search suggestions..." class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500">
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="flex flex-wrap gap-2">
+                    <button id="filterAll" class="filter-btn px-4 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors filter-active">
+                        All
+                    </button>
+                    <button id="filterOperations" class="filter-btn px-4 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors">
+                        Operations
+                    </button>
+                    <button id="filterHR" class="filter-btn px-4 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors">
+                        HR
+                    </button>
+                    <button id="filterFacilities" class="filter-btn px-4 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors">
+                        Facilities
+                    </button>
+                    <button id="filterTechnology" class="filter-btn px-4 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors">
+                        Technology
+                    </button>
+                </div>
+
+                <!-- Sort -->
+                <select id="sortSelect" class="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500">
+                    <option value="votes">Sort by Votes</option>
+                    <option value="date">Sort by Date</option>
+                    <option value="status">Sort by Status</option>
+                    <option value="category">Sort by Category</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suggestions List -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-slate-800">All Suggestions</h3>
+            </div>
+            <div id="suggestionsList" class="divide-y divide-gray-200">
+                <!-- Suggestions will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- New Suggestion Modal -->
+    <div id="suggestionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-slate-800">Submit Suggestion</h3>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="suggestionForm" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                        <select id="suggestionCategory" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500" required>
+                            <option value="">Select Category</option>
+                            <option value="operations">Operations</option>
+                            <option value="hr">Human Resources</option>
+                            <option value="facilities">Facilities</option>
+                            <option value="technology">Technology</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Submission Type</label>
+                        <select id="submissionType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500" required>
+                            <option value="">Select Type</option>
+                            <option value="anonymous">Anonymous</option>
+                            <option value="named">With My Name</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Suggestion Title</label>
+                    <input id="suggestionTitle" type="text" placeholder="e.g., Improve Office Lighting" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500" required>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Detailed Description</label>
+                    <textarea id="suggestionDescription" rows="6" placeholder="Please provide a detailed description of your suggestion, including the problem it solves and potential benefits..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500" required></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Expected Impact</label>
+                    <select id="expectedImpact" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500" required>
+                        <option value="">Select Impact Level</option>
+                        <option value="high">High Impact - Significant improvement</option>
+                        <option value="medium">Medium Impact - Moderate improvement</option>
+                        <option value="low">Low Impact - Minor improvement</option>
+                    </select>
+                </div>
+                
+                <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800">Submission Guidelines</h3>
+                            <div class="mt-2 text-sm text-yellow-700">
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>Be specific and provide clear details</li>
+                                    <li>Focus on constructive improvements</li>
+                                    <li>Consider implementation feasibility</li>
+                                    <li>Anonymous suggestions are welcome</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancelBtn" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-yellow-500 text-white rounded-md text-sm font-medium hover:bg-yellow-600 transition-colors">
+                        Submit Suggestion
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 text-white py-8 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-slate-300">&copy; 2025 WAG Portal. Streamlining workplace operations with intelligent management solutions.</p>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+    <script>
+        // Suggestion Box specific functionality
+        let suggestions = [];
+        let filteredSuggestions = [];
+        let currentFilter = 'all';
+        let currentSort = 'votes';
+        let userVotes = new Set(); // Track votes by current user
+
+        // Sample suggestion data
+        const sampleSuggestions = [
+            {
+                id: 'SG001',
+                title: 'Upgrade Office Lighting to LED',
+                description: 'Replace all fluorescent lighting with energy-efficient LED lights to reduce electricity costs and improve lighting quality. This would also help reduce eye strain and create a more comfortable working environment.',
+                category: 'facilities',
+                impact: 'high',
+                status: 'review',
+                submittedBy: 'Anonymous',
+                submittedDate: '2025-01-15',
+                votes: 24,
+                comments: [
+                    { author: 'Sarah Johnson', date: '2025-01-15', text: 'Great idea! This would save significant energy costs.' },
+                    { author: 'Mike Chen', date: '2025-01-16', text: 'I support this. Better lighting would improve productivity.' }
+                ],
+                response: {
+                    status: 'under-review',
+                    manager: 'Lisa Park',
+                    responseDate: '2025-01-17',
+                    responseText: 'We are currently evaluating LED lighting options and getting quotes from vendors.'
+                }
+            },
+            {
+                id: 'SG002',
+                title: 'Flexible Work Hours Policy',
+                description: 'Implement a flexible work schedule allowing employees to start between 7-10 AM and end between 3-6 PM, as long as they complete 8 hours. This would help with work-life balance and reduce traffic stress.',
+                category: 'hr',
+                impact: 'high',
+                status: 'implemented',
+                submittedBy: 'Emma Davis',
+                submittedDate: '2025-01-12',
+                votes: 31,
+                comments: [
+                    { author: 'David Wilson', date: '2025-01-12', text: 'This would be amazing for parents with school drop-offs!' },
+                    { author: 'Alex Rodriguez', date: '2025-01-13', text: 'Fully support this initiative.' }
+                ],
+                response: {
+                    status: 'implemented',
+                    manager: 'Sarah Johnson',
+                    responseDate: '2025-01-20',
+                    responseText: 'Policy has been implemented starting February 1st. Guidelines have been sent to all employees.'
+                }
+            },
+            {
+                id: 'SG003',
+                title: 'Standing Desks for Health',
+                description: 'Provide adjustable standing desks for employees who want them. Studies show they reduce back pain and improve health. Could start with a pilot program for interested employees.',
+                category: 'operations',
+                impact: 'medium',
+                status: 'pending',
+                submittedBy: 'Anonymous',
+                submittedDate: '2025-01-10',
+                votes: 18,
+                comments: [
+                    { author: 'Maria Garcia', date: '2025-01-11', text: 'I would definitely use a standing desk!' },
+                    { author: 'John Smith', date: '2025-01-12', text: 'Great for health and productivity.' }
+                ],
+                response: null
+            },
+            {
+                id: 'SG004',
+                title: 'Coffee Machine Upgrade',
+                description: 'Replace the old coffee machine with a better quality one that offers more options like espresso, cappuccino, and different coffee strengths. Current machine often breaks down.',
+                category: 'facilities',
+                impact: 'low',
+                status: 'implemented',
+                submittedBy: 'Mike Chen',
+                submittedDate: '2025-01-08',
+                votes: 15,
+                comments: [
+                    { author: 'Emma Davis', date: '2025-01-08', text: 'Yes! The current one is terrible.' },
+                    { author: 'Alex Rodriguez', date: '2025-01-09', text: 'Would love better coffee options.' }
+                ],
+                response: {
+                    status: 'implemented',
+                    manager: 'Lisa Park',
+                    responseDate: '2025-01-18',
+                    responseText: 'New coffee machine installed in the break room with multiple options.'
+                }
+            },
+            {
+                id: 'SG005',
+                title: 'Professional Development Budget',
+                description: 'Allocate a yearly budget for each employee for professional development courses, conferences, or certifications. This would help with skill development and employee retention.',
+                category: 'hr',
+                impact: 'high',
+                status: 'review',
+                submittedBy: 'Anonymous',
+                submittedDate: '2025-01-05',
+                votes: 27,
+                comments: [
+                    { author: 'Sarah Johnson', date: '2025-01-06', text: 'This would be a great investment in our team.' },
+                    { author: 'David Wilson', date: '2025-01-07', text: 'Many companies offer this benefit. We should too.' }
+                ],
+                response: {
+                    status: 'under-review',
+                    manager: 'Sarah Johnson',
+                    responseDate: '2025-01-19',
+                    responseText: 'We are reviewing budget allocations for professional development programs.'
+                }
+            },
+            {
+                id: 'SG006',
+                title: 'Office Plants for Better Air Quality',
+                description: 'Add more plants throughout the office to improve air quality and create a more pleasant working environment. Low-maintenance plants like snake plants and pothos would be ideal.',
+                category: 'facilities',
+                impact: 'low',
+                status: 'pending',
+                submittedBy: 'Maria Garcia',
+                submittedDate: '2025-01-18',
+                votes: 12,
+                comments: [
+                    { author: 'Lisa Park', date: '2025-01-18', text: 'Great idea! Plants really improve the atmosphere.' },
+                    { author: 'Emma Davis', date: '2025-01-19', text: 'I can help take care of them if needed.' }
+                ],
+                response: null
+            }
+        ];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            suggestions = [...sampleSuggestions];
+            filteredSuggestions = [...suggestions];
+            initializeSuggestionBox();
+        });
+
+        function initializeSuggestionBox() {
+            renderPopularSuggestions();
+            renderSuggestions();
+            updateStatistics();
+            initializeEventListeners();
+            
+            // Initialize carousel
+            if (document.querySelector('.splide')) {
+                new Splide('.splide', {
+                    type: 'loop',
+                    perPage: 3,
+                    perMove: 1,
+                    gap: '1rem',
+                    breakpoints: {
+                        1024: { perPage: 2 },
+                        768: { perPage: 1 }
+                    }
+                }).mount();
+            }
+            
+            // Initialize animations
+            anime({
+                targets: '.card-hover, .suggestion-card',
+                translateY: [20, 0],
+                opacity: [0, 1],
+                duration: 600,
+                delay: anime.stagger(100),
+                easing: 'easeOutQuart'
+            });
+        }
+
+        function initializeEventListeners() {
+            // Filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-active'));
+                    this.classList.add('filter-active');
+                    
+                    const filter = this.id.replace('filter', '').toLowerCase();
+                    filterSuggestions(filter);
+                });
+            });
+
+            // Sort dropdown
+            document.getElementById('sortSelect').addEventListener('change', function() {
+                currentSort = this.value;
+                sortSuggestions();
+            });
+
+            // Search input
+            document.getElementById('searchInput').addEventListener('input', function() {
+                searchSuggestions(this.value);
+            });
+
+            // Modal controls
+            document.getElementById('newSuggestionBtn').addEventListener('click', openSuggestionModal);
+            document.getElementById('closeModal').addEventListener('click', closeSuggestionModal);
+            document.getElementById('cancelBtn').addEventListener('click', closeSuggestionModal);
+
+            // Form submission
+            document.getElementById('suggestionForm').addEventListener('submit', submitSuggestion);
+        }
+
+        function renderPopularSuggestions() {
+            const popularList = document.getElementById('popularList');
+            const popularSuggestions = suggestions
+                .filter(s => s.votes >= 15)
+                .sort((a, b) => b.votes - a.votes)
+                .slice(0, 6);
+            
+            if (popularSuggestions.length === 0) {
+                popularList.innerHTML = `
+                    <li class="splide__slide">
+                        <div class="bg-white rounded-lg shadow p-6 text-center">
+                            <p class="text-slate-500">No popular suggestions yet</p>
+                        </div>
+                    </li>
+                `;
+                return;
+            }
+            
+            popularList.innerHTML = popularSuggestions.map(suggestion => `
+                <li class="splide__slide">
+                    <div class="suggestion-card ${suggestion.category} bg-white rounded-lg shadow-lg p-6 card-hover">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(suggestion.category)}">
+                                ${getCategoryText(suggestion.category)}
+                            </span>
+                            <div class="flex items-center">
+                                <span class="popular-badge inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-2">
+                                    Popular
+                                </span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(suggestion.status)}">
+                                    ${getStatusText(suggestion.status)}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <h3 class="text-lg font-semibold text-slate-800 mb-2">${suggestion.title}</h3>
+                        <p class="text-slate-600 text-sm mb-4 line-clamp-3">${suggestion.description}</p>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <button class="vote-btn flex items-center space-x-1 px-3 py-1 rounded-full border border-gray-300 hover:bg-gray-50" onclick="voteForSuggestion('${suggestion.id}')">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905 1 0 .712.491 1.313 1.16 1.46L14 10z"></path>
+                                    </svg>
+                                    <span class="text-sm font-medium">${suggestion.votes}</span>
+                                </button>
+                                <span class="text-sm text-slate-500">${suggestion.comments.length} comments</span>
+                            </div>
+                            <button onclick="showSuggestionDetail('${suggestion.id}')" class="text-yellow-600 hover:text-yellow-800 text-sm font-medium">
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        function renderSuggestions() {
+            const suggestionsList = document.getElementById('suggestionsList');
+            
+            if (filteredSuggestions.length === 0) {
+                suggestionsList.innerHTML = `
+                    <div class="px-6 py-12 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">No suggestions found</h3>
+                        <p class="mt-1 text-sm text-gray-500">Try adjusting your search or filter criteria.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            suggestionsList.innerHTML = filteredSuggestions.map(suggestion => `
+                <div class="suggestion-card ${suggestion.category} px-6 py-6 hover:bg-gray-50 cursor-pointer" onclick="showSuggestionDetail('${suggestion.id}')">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-3">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(suggestion.category)}">
+                                    ${getCategoryText(suggestion.category)}
+                                </span>
+                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(suggestion.status)}">
+                                    ${getStatusText(suggestion.status)}
+                                </span>
+                                ${suggestion.votes >= 20 ? `
+                                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Trending
+                                    </span>
+                                ` : ''}
+                            </div>
+                            
+                            <h3 class="text-lg font-semibold text-slate-800 mb-2">${suggestion.title}</h3>
+                            <p class="text-slate-600 text-sm mb-4 line-clamp-3">${suggestion.description}</p>
+                            
+                            <div class="flex items-center justify-between text-sm text-slate-500 mb-3">
+                                <span>Submitted by ${suggestion.submittedBy} on ${formatDate(suggestion.submittedDate)}</span>
+                                <span class="capitalize">${suggestion.impact} impact</span>
+                            </div>
+                            
+                            <div class="flex items-center space-x-4">
+                                <button class="vote-btn flex items-center space-x-1 px-3 py-1 rounded-full border border-gray-300 hover:bg-gray-50 ${userVotes.has(suggestion.id) ? 'voted' : ''}" onclick="voteForSuggestion('${suggestion.id}')">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905 1 0 .712.491 1.313 1.16 1.46L14 10z"></path>
+                                    </svg>
+                                    <span class="text-sm font-medium">${suggestion.votes}</span>
+                                </button>
+                                <span class="text-sm text-slate-500">${suggestion.comments.length} comments</span>
+                                ${suggestion.response ? '<span class="text-sm text-green-600">✓ Management Response</span>' : '<span class="text-sm text-slate-400">No Response</span>'}
+                            </div>
+                        </div>
+                        
+                        <div class="ml-4 flex-shrink-0">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getCategoryColor(category) {
+            switch (category) {
+                case 'operations': return 'bg-blue-100 text-blue-800';
+                case 'hr': return 'bg-red-100 text-red-800';
+                case 'facilities': return 'bg-green-100 text-green-800';
+                case 'technology': return 'bg-purple-100 text-purple-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function getCategoryText(category) {
+            switch (category) {
+                case 'operations': return 'Operations';
+                case 'hr': return 'Human Resources';
+                case 'facilities': return 'Facilities';
+                case 'technology': return 'Technology';
+                default: return category;
+            }
+        }
+
+        function getStatusColor(status) {
+            switch (status) {
+                case 'pending': return 'bg-yellow-100 text-yellow-800';
+                case 'review': return 'bg-blue-100 text-blue-800';
+                case 'implemented': return 'bg-green-100 text-green-800';
+                case 'rejected': return 'bg-red-100 text-red-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function getStatusText(status) {
+            switch (status) {
+                case 'pending': return 'Pending';
+                case 'review': return 'Under Review';
+                case 'implemented': return 'Implemented';
+                case 'rejected': return 'Not Implemented';
+                default: return status;
+            }
+        }
+
+        function filterSuggestions(filter) {
+            currentFilter = filter;
+            
+            if (filter === 'all') {
+                filteredSuggestions = [...suggestions];
+            } else {
+                filteredSuggestions = suggestions.filter(suggestion => suggestion.category === filter);
+            }
+            
+            sortSuggestions();
+            renderSuggestions();
+        }
+
+        function sortSuggestions() {
+            filteredSuggestions.sort((a, b) => {
+                switch (currentSort) {
+                    case 'votes':
+                        return b.votes - a.votes;
+                    case 'date':
+                        return new Date(b.submittedDate) - new Date(a.submittedDate);
+                    case 'status':
+                        const statusOrder = { implemented: 4, review: 3, pending: 2, rejected: 1 };
+                        return statusOrder[b.status] - statusOrder[a.status];
+                    case 'category':
+                        return a.category.localeCompare(b.category);
+                    default:
+                        return b.votes - a.votes;
+                }
+            });
+        }
+
+        function searchSuggestions(query) {
+            if (!query.trim()) {
+                filterSuggestions(currentFilter);
+                return;
+            }
+            
+            const searchTerm = query.toLowerCase();
+            filteredSuggestions = suggestions.filter(suggestion => 
+                suggestion.title.toLowerCase().includes(searchTerm) ||
+                suggestion.description.toLowerCase().includes(searchTerm) ||
+                suggestion.category.toLowerCase().includes(searchTerm) ||
+                suggestion.submittedBy.toLowerCase().includes(searchTerm)
+            );
+            
+            renderSuggestions();
+        }
+
+        function updateStatistics() {
+            const totalSuggestions = suggestions.length;
+            const thisWeek = suggestions.filter(s => {
+                const suggestionDate = new Date(s.submittedDate);
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                return suggestionDate >= weekAgo;
+            }).length;
+            const implemented = suggestions.filter(s => s.status === 'implemented').length;
+            
+            document.getElementById('totalSuggestions').textContent = totalSuggestions;
+            document.getElementById('thisWeek').textContent = thisWeek;
+            document.getElementById('implemented').textContent = implemented;
+            document.getElementById('activeUsers').textContent = 24;
+        }
+
+        function voteForSuggestion(suggestionId) {
+            const suggestion = suggestions.find(s => s.id === suggestionId);
+            if (!suggestion) return;
+            
+            if (userVotes.has(suggestionId)) {
+                // Remove vote
+                suggestion.votes--;
+                userVotes.delete(suggestionId);
+                if (window.WAGPortal) {
+                    window.WAGPortal.showToast('Vote removed', 'info');
+                }
+            } else {
+                // Add vote
+                suggestion.votes++;
+                userVotes.add(suggestionId);
+                if (window.WAGPortal) {
+                    window.WAGPortal.showToast('Vote added!', 'success');
+                }
+            }
+            
+            renderPopularSuggestions();
+            renderSuggestions();
+            updateStatistics();
+        }
+
+        function openSuggestionModal() {
+            document.getElementById('suggestionModal').classList.remove('hidden');
+            document.getElementById('suggestionModal').classList.add('flex');
+            
+            anime({
+                targets: '#suggestionModal .bg-white',
+                scale: [0.8, 1],
+                opacity: [0, 1],
+                duration: 300,
+                easing: 'easeOutBack'
+            });
+        }
+
+        function closeSuggestionModal() {
+            anime({
+                targets: '#suggestionModal .bg-white',
+                scale: [1, 0.8],
+                opacity: [1, 0],
+                duration: 200,
+                easing: 'easeInBack',
+                complete: function() {
+                    document.getElementById('suggestionModal').classList.add('hidden');
+                    document.getElementById('suggestionModal').classList.remove('flex');
+                    document.getElementById('suggestionForm').reset();
+                }
+            });
+        }
+
+        function submitSuggestion(event) {
+            event.preventDefault();
+            
+            const category = document.getElementById('suggestionCategory').value;
+            const submissionType = document.getElementById('submissionType').value;
+            const title = document.getElementById('suggestionTitle').value;
+            const description = document.getElementById('suggestionDescription').value;
+            const impact = document.getElementById('expectedImpact').value;
+            
+            const newSuggestion = {
+                id: `SG${String(suggestions.length + 1).padStart(3, '0')}`,
+                title: title,
+                description: description,
+                category: category,
+                impact: impact,
+                status: 'pending',
+                submittedBy: submissionType === 'anonymous' ? 'Anonymous' : getCurrentUser().name,
+                submittedDate: new Date().toISOString().split('T')[0],
+                votes: 0,
+                comments: [],
+                response: null
+            };
+            
+            suggestions.unshift(newSuggestion);
+            filterSuggestions(currentFilter);
+            updateStatistics();
+            closeSuggestionModal();
+            
+            // Show success notification
+            if (window.WAGPortal) {
+                window.WAGPortal.showToast('Suggestion submitted successfully!', 'success');
+            }
+        }
+
+        function showSuggestionDetail(suggestionId) {
+            const suggestion = suggestions.find(s => s.id === suggestionId);
+            if (!suggestion) return;
+            
+            // Create a detailed view modal or navigate to detail page
+            // For now, we'll show a simple alert
+            alert(`Suggestion Details:\n\nTitle: ${suggestion.title}\nCategory: ${getCategoryText(suggestion.category)}\nStatus: ${getStatusText(suggestion.status)}\nVotes: ${suggestion.votes}\n\nDescription:\n${suggestion.description}\n\nSubmitted by: ${suggestion.submittedBy}\nDate: ${formatDate(suggestion.submittedDate)}`);
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function getCurrentUser() {
+            // This would normally come from authentication
+            return {
+                name: 'John Smith',
+                role: 'user'
+            };
+        }
+    </script>
+</body>
+</html>

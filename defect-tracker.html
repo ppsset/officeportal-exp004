@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defect Tracker - WAG Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-effect { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.1); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .status-pending { background: linear-gradient(135deg, #FEF3C7, #FDE68A); }
+        .status-in-progress { background: linear-gradient(135deg, #DBEAFE, #BFDBFE); }
+        .status-resolved { background: linear-gradient(135deg, #D1FAE5, #A7F3D0); }
+        .priority-high { border-left: 4px solid #EF4444; }
+        .priority-medium { border-left: 4px solid #F59E0B; }
+        .priority-low { border-left: 4px solid #10B981; }
+        .filter-active { background-color: #3B82F6; color: white; }
+        .equipment-icon { transition: all 0.3s ease; }
+        .equipment-icon:hover { transform: scale(1.05); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-2xl font-bold text-slate-800">WAG Portal</h1>
+                    </div>
+                </div>
+                
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="index.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Dashboard</a>
+                        <a href="defect-tracker.html" class="bg-red-100 text-red-700 px-3 py-2 rounded-md text-sm font-medium">Defect Tracker</a>
+                        <a href="leave-request.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Leave Request</a>
+                        <a href="facility-reservation.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Facility Booking</a>
+                        <a href="tech-board.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Tech Board</a>
+                        <a href="suggestion-box.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Suggestion Box</a>
+                        <a href="office-pulse.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Office Pulse</a>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <button id="roleToggle" class="bg-emerald-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-600 transition-colors">
+                        Switch to Manager
+                    </button>
+                    <div class="relative">
+                        <button id="notificationBtn" class="p-2 text-slate-600 hover:text-slate-800 relative">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M9 11h.01M9 8h.01"></path>
+                            </svg>
+                            <span id="notificationBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <img id="userAvatar" class="h-8 w-8 rounded-full" src="./resources/user-avatars/avatar-1.jpg" alt="User Avatar">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <div class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-slate-800">Defect Tracker</h1>
+                    <p class="text-slate-600 mt-2">Manage equipment defects and maintenance requests efficiently</p>
+                </div>
+                <button id="newDefectBtn" class="bg-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-600 transition-colors flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Report New Defect
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                <!-- Search -->
+                <div class="flex-1 max-w-md">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        <input id="searchInput" type="text" placeholder="Search defects..." class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-red-500 focus:border-red-500">
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="flex flex-wrap gap-2">
+                    <button id="filterAll" class="filter-btn px-4 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors filter-active">
+                        All
+                    </button>
+                    <button id="filterPending" class="filter-btn px-4 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors">
+                        Pending
+                    </button>
+                    <button id="filterInProgress" class="filter-btn px-4 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors">
+                        In Progress
+                    </button>
+                    <button id="filterResolved" class="filter-btn px-4 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors">
+                        Resolved
+                    </button>
+                    <button id="filterHighPriority" class="filter-btn px-4 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors">
+                        High Priority
+                    </button>
+                </div>
+
+                <!-- Sort -->
+                <select id="sortSelect" class="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500">
+                    <option value="date">Sort by Date</option>
+                    <option value="priority">Sort by Priority</option>
+                    <option value="status">Sort by Status</option>
+                    <option value="equipment">Sort by Equipment</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-red-100 text-red-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Defects</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="totalDefects">24</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Pending</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="pendingDefects">8</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">In Progress</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="inProgressDefects">5</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-100 text-green-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Resolved</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="resolvedDefects">11</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Defects List -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-slate-800">Equipment Defects</h3>
+            </div>
+            <div id="defectsList" class="divide-y divide-gray-200">
+                <!-- Defects will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- New Defect Modal -->
+    <div id="defectModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-slate-800">Report New Defect</h3>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="defectForm" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Equipment Type</label>
+                        <select id="equipmentType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500" required>
+                            <option value="">Select Equipment</option>
+                            <option value="printer">Printer</option>
+                            <option value="scanner">Scanner</option>
+                            <option value="computer">Computer</option>
+                            <option value="projector">Projector</option>
+                            <option value="air-conditioner">Air Conditioner</option>
+                            <option value="lighting">Lighting</option>
+                            <option value="furniture">Furniture</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Priority Level</label>
+                        <select id="priorityLevel" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500" required>
+                            <option value="">Select Priority</option>
+                            <option value="high">High - Immediate Attention</option>
+                            <option value="medium">Medium - Within 24 Hours</option>
+                            <option value="low">Low - Within 1 Week</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Equipment Location</label>
+                    <input id="equipmentLocation" type="text" placeholder="e.g., Floor 3, Room 301" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500" required>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Defect Description</label>
+                    <textarea id="defectDescription" rows="4" placeholder="Describe the issue in detail..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500" required></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Attach Photo (Optional)</label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                        <div class="space-y-1 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div class="flex text-sm text-gray-600">
+                                <label for="photoUpload" class="relative cursor-pointer bg-white rounded-md font-medium text-red-600 hover:text-red-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-red-500">
+                                    <span>Upload a file</span>
+                                    <input id="photoUpload" name="photoUpload" type="file" class="sr-only" accept="image/*">
+                                </label>
+                                <p class="pl-1">or drag and drop</p>
+                            </div>
+                            <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancelBtn" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-md text-sm font-medium hover:bg-red-600 transition-colors">
+                        Submit Defect
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Defect Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-slate-800">Defect Details</h3>
+                <button id="closeDetailModal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="detailContent">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 text-white py-8 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-slate-300">&copy; 2025 WAG Portal. Streamlining workplace operations with intelligent management solutions.</p>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+    <script>
+        // Defect Tracker specific functionality
+        let defects = [];
+        let filteredDefects = [];
+        let currentFilter = 'all';
+        let currentSort = 'date';
+
+        // Sample defect data
+        const sampleDefects = [
+            {
+                id: 'DEF001',
+                equipmentType: 'printer',
+                location: 'Floor 2, Room 205',
+                description: 'Paper jam error keeps occurring even after clearing. Need maintenance check.',
+                priority: 'high',
+                status: 'pending',
+                reportedBy: 'Sarah Johnson',
+                reportedDate: '2025-01-10',
+                assignedTo: 'Mike Chen',
+                comments: [
+                    { author: 'Mike Chen', date: '2025-01-10', text: 'Will check this afternoon' },
+                    { author: 'Sarah Johnson', date: '2025-01-11', text: 'Issue persists, affecting daily operations' }
+                ],
+                photo: './resources/equipment-printer.jpg'
+            },
+            {
+                id: 'DEF002',
+                equipmentType: 'air-conditioner',
+                location: 'Floor 3, Conference Room A',
+                description: 'AC unit making unusual noise and not cooling properly. Temperature control seems faulty.',
+                priority: 'medium',
+                status: 'in-progress',
+                reportedBy: 'David Wilson',
+                reportedDate: '2025-01-09',
+                assignedTo: 'Lisa Park',
+                comments: [
+                    { author: 'Lisa Park', date: '2025-01-09', text: 'Filter replacement needed' }
+                ]
+            },
+            {
+                id: 'DEF003',
+                equipmentType: 'computer',
+                location: 'Floor 1, IT Department',
+                description: 'Computer won\'t boot up. Shows blue screen error. Need immediate replacement for urgent project.',
+                priority: 'high',
+                status: 'resolved',
+                reportedBy: 'Alex Rodriguez',
+                reportedDate: '2025-01-08',
+                assignedTo: 'Tom Anderson',
+                resolvedDate: '2025-01-09',
+                comments: [
+                    { author: 'Tom Anderson', date: '2025-01-08', text: 'Hardware failure detected' },
+                    { author: 'Tom Anderson', date: '2025-01-09', text: 'Replaced motherboard, system working now' }
+                ]
+            },
+            {
+                id: 'DEF004',
+                equipmentType: 'lighting',
+                location: 'Floor 4, Break Room',
+                description: 'Fluorescent lights flickering constantly. Multiple bulbs need replacement.',
+                priority: 'low',
+                status: 'pending',
+                reportedBy: 'Emma Davis',
+                reportedDate: '2025-01-07',
+                assignedTo: 'James Wilson',
+                comments: []
+            },
+            {
+                id: 'DEF005',
+                equipmentType: 'scanner',
+                location: 'Floor 2, Reception',
+                description: 'Scanner not detecting documents properly. Calibration seems off.',
+                priority: 'medium',
+                status: 'resolved',
+                reportedBy: 'Maria Garcia',
+                reportedDate: '2025-01-06',
+                assignedTo: 'Mike Chen',
+                resolvedDate: '2025-01-07',
+                comments: [
+                    { author: 'Mike Chen', date: '2025-01-06', text: 'Will recalibrate scanner' },
+                    { author: 'Mike Chen', date: '2025-01-07', text: 'Calibration complete, working properly now' }
+                ]
+            }
+        ];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            defects = [...sampleDefects];
+            filteredDefects = [...defects];
+            initializeDefectTracker();
+        });
+
+        function initializeDefectTracker() {
+            renderDefects();
+            updateStatistics();
+            initializeEventListeners();
+            
+            // Initialize animations
+            anime({
+                targets: '.card-hover',
+                translateY: [20, 0],
+                opacity: [0, 1],
+                duration: 600,
+                delay: anime.stagger(100),
+                easing: 'easeOutQuart'
+            });
+        }
+
+        function initializeEventListeners() {
+            // Filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-active'));
+                    this.classList.add('filter-active');
+                    
+                    const filter = this.id.replace('filter', '').toLowerCase();
+                    filterDefects(filter);
+                });
+            });
+
+            // Sort dropdown
+            document.getElementById('sortSelect').addEventListener('change', function() {
+                currentSort = this.value;
+                sortDefects();
+            });
+
+            // Search input
+            document.getElementById('searchInput').addEventListener('input', function() {
+                searchDefects(this.value);
+            });
+
+            // Modal controls
+            document.getElementById('newDefectBtn').addEventListener('click', openDefectModal);
+            document.getElementById('closeModal').addEventListener('click', closeDefectModal);
+            document.getElementById('cancelBtn').addEventListener('click', closeDefectModal);
+            document.getElementById('closeDetailModal').addEventListener('click', closeDetailModal);
+
+            // Form submission
+            document.getElementById('defectForm').addEventListener('submit', submitDefect);
+
+            // Photo upload
+            document.getElementById('photoUpload').addEventListener('change', handlePhotoUpload);
+        }
+
+        function renderDefects() {
+            const defectsList = document.getElementById('defectsList');
+            
+            if (filteredDefects.length === 0) {
+                defectsList.innerHTML = `
+                    <div class="px-6 py-12 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">No defects found</h3>
+                        <p class="mt-1 text-sm text-gray-500">Try adjusting your search or filter criteria.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            defectsList.innerHTML = filteredDefects.map(defect => `
+                <div class="px-6 py-4 hover:bg-gray-50 cursor-pointer defect-item priority-${defect.priority}" onclick="showDefectDetail('${defect.id}')">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(defect.status)}">
+                                    ${getStatusText(defect.status)}
+                                </span>
+                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(defect.priority)}">
+                                    ${defect.priority.toUpperCase()}
+                                </span>
+                                <span class="ml-2 text-sm font-medium text-slate-800">${defect.id}</span>
+                            </div>
+                            <h4 class="text-lg font-semibold text-slate-800 mb-1">${getEquipmentName(defect.equipmentType)} - ${defect.location}</h4>
+                            <p class="text-slate-600 text-sm mb-2">${defect.description}</p>
+                            <div class="flex items-center text-sm text-slate-500">
+                                <span>Reported by ${defect.reportedBy} on ${formatDate(defect.reportedDate)}</span>
+                                ${defect.assignedTo ? ` • Assigned to ${defect.assignedTo}` : ''}
+                            </div>
+                        </div>
+                        <div class="ml-4 flex-shrink-0">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusColor(status) {
+            switch (status) {
+                case 'pending': return 'bg-yellow-100 text-yellow-800';
+                case 'in-progress': return 'bg-blue-100 text-blue-800';
+                case 'resolved': return 'bg-green-100 text-green-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function getStatusText(status) {
+            switch (status) {
+                case 'pending': return 'Pending';
+                case 'in-progress': return 'In Progress';
+                case 'resolved': return 'Resolved';
+                default: return status;
+            }
+        }
+
+        function getPriorityColor(priority) {
+            switch (priority) {
+                case 'high': return 'bg-red-100 text-red-800';
+                case 'medium': return 'bg-orange-100 text-orange-800';
+                case 'low': return 'bg-green-100 text-green-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function getEquipmentName(type) {
+            const equipmentNames = {
+                'printer': 'Printer',
+                'scanner': 'Scanner',
+                'computer': 'Computer',
+                'projector': 'Projector',
+                'air-conditioner': 'Air Conditioner',
+                'lighting': 'Lighting',
+                'furniture': 'Furniture',
+                'other': 'Other Equipment'
+            };
+            return equipmentNames[type] || type;
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function filterDefects(filter) {
+            currentFilter = filter;
+            
+            if (filter === 'all') {
+                filteredDefects = [...defects];
+            } else if (filter === 'highpriority') {
+                filteredDefects = defects.filter(defect => defect.priority === 'high');
+            } else {
+                filteredDefects = defects.filter(defect => defect.status === filter);
+            }
+            
+            sortDefects();
+            renderDefects();
+        }
+
+        function sortDefects() {
+            filteredDefects.sort((a, b) => {
+                switch (currentSort) {
+                    case 'priority':
+                        const priorityOrder = { high: 3, medium: 2, low: 1 };
+                        return priorityOrder[b.priority] - priorityOrder[a.priority];
+                    case 'status':
+                        const statusOrder = { pending: 3, 'in-progress': 2, resolved: 1 };
+                        return statusOrder[b.status] - statusOrder[a.status];
+                    case 'equipment':
+                        return a.equipmentType.localeCompare(b.equipmentType);
+                    default:
+                        return new Date(b.reportedDate) - new Date(a.reportedDate);
+                }
+            });
+        }
+
+        function searchDefects(query) {
+            if (!query.trim()) {
+                filterDefects(currentFilter);
+                return;
+            }
+            
+            const searchTerm = query.toLowerCase();
+            filteredDefects = defects.filter(defect => 
+                defect.id.toLowerCase().includes(searchTerm) ||
+                defect.location.toLowerCase().includes(searchTerm) ||
+                defect.description.toLowerCase().includes(searchTerm) ||
+                defect.equipmentType.toLowerCase().includes(searchTerm) ||
+                defect.reportedBy.toLowerCase().includes(searchTerm)
+            );
+            
+            renderDefects();
+        }
+
+        function updateStatistics() {
+            const total = defects.length;
+            const pending = defects.filter(d => d.status === 'pending').length;
+            const inProgress = defects.filter(d => d.status === 'in-progress').length;
+            const resolved = defects.filter(d => d.status === 'resolved').length;
+
+            document.getElementById('totalDefects').textContent = total;
+            document.getElementById('pendingDefects').textContent = pending;
+            document.getElementById('inProgressDefects').textContent = inProgress;
+            document.getElementById('resolvedDefects').textContent = resolved;
+        }
+
+        function openDefectModal() {
+            document.getElementById('defectModal').classList.remove('hidden');
+            document.getElementById('defectModal').classList.add('flex');
+            
+            anime({
+                targets: '#defectModal .bg-white',
+                scale: [0.8, 1],
+                opacity: [0, 1],
+                duration: 300,
+                easing: 'easeOutBack'
+            });
+        }
+
+        function closeDefectModal() {
+            anime({
+                targets: '#defectModal .bg-white',
+                scale: [1, 0.8],
+                opacity: [1, 0],
+                duration: 200,
+                easing: 'easeInBack',
+                complete: function() {
+                    document.getElementById('defectModal').classList.add('hidden');
+                    document.getElementById('defectModal').classList.remove('flex');
+                    document.getElementById('defectForm').reset();
+                }
+            });
+        }
+
+        function closeDetailModal() {
+            anime({
+                targets: '#detailModal .bg-white',
+                scale: [1, 0.8],
+                opacity: [1, 0],
+                duration: 200,
+                easing: 'easeInBack',
+                complete: function() {
+                    document.getElementById('detailModal').classList.add('hidden');
+                    document.getElementById('detailModal').classList.remove('flex');
+                }
+            });
+        }
+
+        function submitDefect(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const newDefect = {
+                id: `DEF${String(defects.length + 1).padStart(3, '0')}`,
+                equipmentType: document.getElementById('equipmentType').value,
+                location: document.getElementById('equipmentLocation').value,
+                description: document.getElementById('defectDescription').value,
+                priority: document.getElementById('priorityLevel').value,
+                status: 'pending',
+                reportedBy: getCurrentUser().name,
+                reportedDate: new Date().toISOString().split('T')[0],
+                assignedTo: '',
+                comments: []
+            };
+            
+            defects.unshift(newDefect);
+            filterDefects(currentFilter);
+            updateStatistics();
+            closeDefectModal();
+            
+            // Show success notification
+            if (window.WAGPortal) {
+                window.WAGPortal.showToast('Defect reported successfully!', 'success');
+            }
+        }
+
+        function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // In a real app, you would upload the file to a server
+                console.log('Photo uploaded:', file.name);
+                
+                // Show preview or confirmation
+                const label = event.target.closest('label');
+                const originalText = label.innerHTML;
+                label.innerHTML = `<span class="text-green-600">✓ ${file.name}</span>`;
+                
+                setTimeout(() => {
+                    label.innerHTML = originalText;
+                }, 2000);
+            }
+        }
+
+        function showDefectDetail(defectId) {
+            const defect = defects.find(d => d.id === defectId);
+            if (!defect) return;
+            
+            const detailContent = document.getElementById('detailContent');
+            detailContent.innerHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-3">Defect Information</h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Defect ID:</span>
+                                    <span class="text-sm text-slate-800">${defect.id}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Equipment:</span>
+                                    <span class="text-sm text-slate-800">${getEquipmentName(defect.equipmentType)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Location:</span>
+                                    <span class="text-sm text-slate-800">${defect.location}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Priority:</span>
+                                    <span class="text-sm text-slate-800 capitalize">${defect.priority}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Status:</span>
+                                    <span class="text-sm text-slate-800 capitalize">${getStatusText(defect.status)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Reported By:</span>
+                                    <span class="text-sm text-slate-800">${defect.reportedBy}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Date:</span>
+                                    <span class="text-sm text-slate-800">${formatDate(defect.reportedDate)}</span>
+                                </div>
+                                ${defect.assignedTo ? `
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Assigned To:</span>
+                                    <span class="text-sm text-slate-800">${defect.assignedTo}</span>
+                                </div>
+                                ` : ''}
+                                ${defect.resolvedDate ? `
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Resolved:</span>
+                                    <span class="text-sm text-slate-800">${formatDate(defect.resolvedDate)}</span>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-3">Description</h4>
+                            <p class="text-sm text-slate-600">${defect.description}</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-3">Comments</h4>
+                            <div class="space-y-3 max-h-64 overflow-y-auto">
+                                ${defect.comments.length > 0 ? defect.comments.map(comment => `
+                                    <div class="bg-gray-50 rounded-lg p-3">
+                                        <div class="flex justify-between items-start mb-1">
+                                            <span class="font-medium text-slate-800">${comment.author}</span>
+                                            <span class="text-xs text-slate-500">${formatDate(comment.date)}</span>
+                                        </div>
+                                        <p class="text-sm text-slate-600">${comment.text}</p>
+                                    </div>
+                                `).join('') : '<p class="text-sm text-slate-500">No comments yet.</p>'}
+                            </div>
+                        </div>
+                        
+                        ${defect.photo ? `
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-3">Photo</h4>
+                            <img src="${defect.photo}" alt="Defect Photo" class="w-full rounded-lg">
+                        </div>
+                        ` : ''}
+                        
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-3">Add Comment</h4>
+                            <div class="space-y-3">
+                                <textarea id="newComment" rows="3" placeholder="Add your comment..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"></textarea>
+                                <button onclick="addComment('${defect.id}')" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors">
+                                    Add Comment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('detailModal').classList.remove('hidden');
+            document.getElementById('detailModal').classList.add('flex');
+            
+            anime({
+                targets: '#detailModal .bg-white',
+                scale: [0.8, 1],
+                opacity: [0, 1],
+                duration: 300,
+                easing: 'easeOutBack'
+            });
+        }
+
+        function addComment(defectId) {
+            const commentText = document.getElementById('newComment').value.trim();
+            if (!commentText) return;
+            
+            const defect = defects.find(d => d.id === defectId);
+            if (defect) {
+                defect.comments.push({
+                    author: getCurrentUser().name,
+                    date: new Date().toISOString().split('T')[0],
+                    text: commentText
+                });
+                
+                // Refresh the detail view
+                showDefectDetail(defectId);
+                
+                // Clear the comment textarea
+                document.getElementById('newComment').value = '';
+                
+                // Show success notification
+                if (window.WAGPortal) {
+                    window.WAGPortal.showToast('Comment added successfully!', 'success');
+                }
+            }
+        }
+
+        function getCurrentUser() {
+            // This would normally come from authentication
+            return {
+                name: 'John Smith',
+                role: 'user'
+            };
+        }
+    </script>
+</body>
+</html>

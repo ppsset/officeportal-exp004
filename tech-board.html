@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Board - WAG Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-effect { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.1); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .project-card { transition: all 0.3s ease; border-left: 4px solid transparent; }
+        .project-card.mechanical { border-left-color: #EF4444; }
+        .project-card.electrical { border-left-color: #3B82F6; }
+        .project-card.plumbing { border-left-color: #10B981; }
+        .drawing-viewer { background: #f8f9fa; border: 1px solid #e9ecef; min-height: 400px; }
+        .annotation { position: absolute; background: rgba(255, 255, 0, 0.3); border: 2px solid #fbbf24; cursor: pointer; }
+        .version-tag { background: linear-gradient(135deg, #EEF2FF, #DBEAFE); }
+        .comment-thread { border-left: 3px solid #E5E7EB; }
+        .status-planning { background: linear-gradient(135deg, #FEF3C7, #FDE68A); }
+        .status-design { background: linear-gradient(135deg, #DBEAFE, #BFDBFE); }
+        .status-review { background: linear-gradient(135deg, #E0E7FF, #C7D2FE); }
+        .status-approved { background: linear-gradient(135deg, #D1FAE5, #A7F3D0); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-2xl font-bold text-slate-800">WAG Portal</h1>
+                    </div>
+                </div>
+                
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="index.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Dashboard</a>
+                        <a href="defect-tracker.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Defect Tracker</a>
+                        <a href="leave-request.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Leave Request</a>
+                        <a href="facility-reservation.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Facility Booking</a>
+                        <a href="tech-board.html" class="bg-purple-100 text-purple-700 px-3 py-2 rounded-md text-sm font-medium">Tech Board</a>
+                        <a href="suggestion-box.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Suggestion Box</a>
+                        <a href="office-pulse.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Office Pulse</a>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <button id="roleToggle" class="bg-emerald-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-600 transition-colors">
+                        Switch to Manager
+                    </button>
+                    <div class="relative">
+                        <button id="notificationBtn" class="p-2 text-slate-600 hover:text-slate-800 relative">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M9 11h.01M9 8h.01"></path>
+                            </svg>
+                            <span id="notificationBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <img id="userAvatar" class="h-8 w-8 rounded-full" src="./resources/user-avatars/avatar-1.jpg" alt="User Avatar">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <div class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-slate-800">Tech Board</h1>
+                    <p class="text-slate-600 mt-2">Collaborate on MEP (Mechanical, Electrical, Plumbing) design projects</p>
+                </div>
+                <button id="newProjectBtn" class="bg-purple-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-600 transition-colors flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    New Project
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Statistics -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-red-100 text-red-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Active Projects</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="activeProjects">8</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Drawings</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="totalDrawings">24</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-100 text-green-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a2 2 0 01-2-2v-6a2 2 0 012-2h8z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Comments</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="totalComments">42</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Team Members</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="teamMembers">15</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                <!-- Search -->
+                <div class="flex-1 max-w-md">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        <input id="searchInput" type="text" placeholder="Search projects..." class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-purple-500 focus:border-purple-500">
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="flex flex-wrap gap-2">
+                    <button id="filterAll" class="filter-btn px-4 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors filter-active">
+                        All
+                    </button>
+                    <button id="filterMechanical" class="filter-btn px-4 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors">
+                        Mechanical
+                    </button>
+                    <button id="filterElectrical" class="filter-btn px-4 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors">
+                        Electrical
+                    </button>
+                    <button id="filterPlumbing" class="filter-btn px-4 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors">
+                        Plumbing
+                    </button>
+                </div>
+
+                <!-- Sort -->
+                <select id="sortSelect" class="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500">
+                    <option value="date">Sort by Date</option>
+                    <option value="name">Sort by Name</option>
+                    <option value="status">Sort by Status</option>
+                    <option value="category">Sort by Category</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects Grid -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div id="projectsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Projects will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- New Project Modal -->
+    <div id="projectModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-slate-800">Create New Project</h3>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="projectForm" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Project Name</label>
+                        <input id="projectName" type="text" placeholder="e.g., HVAC System Design" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500" required>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                        <select id="projectCategory" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500" required>
+                            <option value="">Select Category</option>
+                            <option value="mechanical">Mechanical</option>
+                            <option value="electrical">Electrical</option>
+                            <option value="plumbing">Plumbing</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Project Description</label>
+                    <textarea id="projectDescription" rows="4" placeholder="Describe the project scope and objectives..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500" required></textarea>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Project Manager</label>
+                        <select id="projectManager" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500" required>
+                            <option value="">Select Manager</option>
+                            <option value="Sarah Johnson">Sarah Johnson</option>
+                            <option value="Mike Chen">Mike Chen</option>
+                            <option value="Lisa Park">Lisa Park</option>
+                            <option value="David Wilson">David Wilson</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Priority Level</label>
+                        <select id="priorityLevel" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500" required>
+                            <option value="">Select Priority</option>
+                            <option value="high">High Priority</option>
+                            <option value="medium">Medium Priority</option>
+                            <option value="low">Low Priority</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Team Members</label>
+                    <div class="space-y-2">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="member1" value="John Smith" class="team-member-checkbox mr-2">
+                            <label for="member1" class="text-sm">John Smith - Mechanical Engineer</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="member2" value="Emma Davis" class="team-member-checkbox mr-2">
+                            <label for="member2" class="text-sm">Emma Davis - Electrical Engineer</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="member3" value="Alex Rodriguez" class="team-member-checkbox mr-2">
+                            <label for="member3" class="text-sm">Alex Rodriguez - Plumbing Engineer</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="member4" value="Maria Garcia" class="team-member-checkbox mr-2">
+                            <label for="member4" class="text-sm">Maria Garcia - BIM Specialist</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancelBtn" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-purple-500 text-white rounded-md text-sm font-medium hover:bg-purple-600 transition-colors">
+                        Create Project
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Project Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-slate-800">Project Details</h3>
+                <button id="closeDetailModal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="detailContent">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 text-white py-8 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-slate-300">&copy; 2025 WAG Portal. Streamlining workplace operations with intelligent management solutions.</p>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+    <script>
+        // Tech Board specific functionality
+        let projects = [];
+        let filteredProjects = [];
+        let currentFilter = 'all';
+        let currentSort = 'date';
+
+        // Sample project data
+        const sampleProjects = [
+            {
+                id: 'PROJ001',
+                name: 'HVAC System Design - Building A',
+                category: 'mechanical',
+                description: 'Design and specification of heating, ventilation, and air conditioning systems for the new office building.',
+                status: 'design',
+                priority: 'high',
+                manager: 'Sarah Johnson',
+                team: ['John Smith', 'Emma Davis', 'Mike Chen'],
+                createdDate: '2025-01-10',
+                updatedDate: '2025-01-14',
+                drawings: [
+                    {
+                        id: 'DW001',
+                        name: 'Floor Plan - Level 1',
+                        version: 'v2.1',
+                        uploadedBy: 'John Smith',
+                        uploadedDate: '2025-01-14',
+                        file: './resources/mep-drawing-1.jpg',
+                        annotations: [
+                            { x: 150, y: 200, text: 'Air handling unit location' },
+                            { x: 300, y: 150, text: 'Ductwork routing' }
+                        ]
+                    },
+                    {
+                        id: 'DW002',
+                        name: 'Ductwork Layout',
+                        version: 'v1.3',
+                        uploadedBy: 'Emma Davis',
+                        uploadedDate: '2025-01-13',
+                        file: './resources/mep-drawing-2.jpg',
+                        annotations: []
+                    }
+                ],
+                comments: [
+                    {
+                        author: 'Sarah Johnson',
+                        date: '2025-01-14',
+                        text: 'Please review the updated ductwork specifications. Need approval by Friday.',
+                        replies: [
+                            { author: 'Mike Chen', date: '2025-01-14', text: 'Reviewed. Looks good to proceed.' }
+                        ]
+                    },
+                    {
+                        author: 'John Smith',
+                        date: '2025-01-13',
+                        text: 'Added annotations for equipment locations. Please verify dimensions.',
+                        replies: []
+                    }
+                ]
+            },
+            {
+                id: 'PROJ002',
+                name: 'Electrical Distribution - Floor 2',
+                category: 'electrical',
+                description: 'Electrical load calculations, panel layouts, and lighting design for the second floor renovation.',
+                status: 'review',
+                priority: 'medium',
+                manager: 'Mike Chen',
+                team: ['Emma Davis', 'Alex Rodriguez'],
+                createdDate: '2025-01-08',
+                updatedDate: '2025-01-12',
+                drawings: [
+                    {
+                        id: 'DW003',
+                        name: 'Electrical Panel Layout',
+                        version: 'v1.2',
+                        uploadedBy: 'Emma Davis',
+                        uploadedDate: '2025-01-12',
+                        file: './resources/mep-drawing-1.jpg',
+                        annotations: []
+                    }
+                ],
+                comments: [
+                    {
+                        author: 'Emma Davis',
+                        date: '2025-01-12',
+                        text: 'Updated panel schedules based on new load calculations.',
+                        replies: []
+                    }
+                ]
+            },
+            {
+                id: 'PROJ003',
+                name: 'Plumbing System - Kitchen Area',
+                category: 'plumbing',
+                description: 'Design of water supply and drainage systems for the new commercial kitchen area.',
+                status: 'planning',
+                priority: 'high',
+                manager: 'Lisa Park',
+                team: ['Alex Rodriguez', 'Maria Garcia'],
+                createdDate: '2025-01-15',
+                updatedDate: '2025-01-15',
+                drawings: [],
+                comments: [
+                    {
+                        author: 'Lisa Park',
+                        date: '2025-01-15',
+                        text: 'Initial planning meeting scheduled for Monday. Please review requirements document.',
+                        replies: []
+                    }
+                ]
+            },
+            {
+                id: 'PROJ004',
+                name: 'Fire Protection System',
+                category: 'mechanical',
+                description: 'Sprinkler system design and hydraulic calculations for building fire protection.',
+                status: 'approved',
+                priority: 'high',
+                manager: 'David Wilson',
+                team: ['John Smith', 'Mike Chen'],
+                createdDate: '2025-01-05',
+                updatedDate: '2025-01-11',
+                drawings: [
+                    {
+                        id: 'DW004',
+                        name: 'Sprinkler Layout',
+                        version: 'v3.0',
+                        uploadedBy: 'John Smith',
+                        uploadedDate: '2025-01-11',
+                        file: './resources/mep-drawing-2.jpg',
+                        annotations: []
+                    }
+                ],
+                comments: [
+                    {
+                        author: 'David Wilson',
+                        date: '2025-01-11',
+                        text: 'Final design approved by fire department. Ready for construction.',
+                        replies: []
+                    }
+                ]
+            }
+        ];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            projects = [...sampleProjects];
+            filteredProjects = [...projects];
+            initializeTechBoard();
+        });
+
+        function initializeTechBoard() {
+            renderProjects();
+            updateStatistics();
+            initializeEventListeners();
+            
+            // Initialize animations
+            anime({
+                targets: '.card-hover, .project-card',
+                translateY: [20, 0],
+                opacity: [0, 1],
+                duration: 600,
+                delay: anime.stagger(100),
+                easing: 'easeOutQuart'
+            });
+        }
+
+        function initializeEventListeners() {
+            // Filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-active'));
+                    this.classList.add('filter-active');
+                    
+                    const filter = this.id.replace('filter', '').toLowerCase();
+                    filterProjects(filter);
+                });
+            });
+
+            // Sort dropdown
+            document.getElementById('sortSelect').addEventListener('change', function() {
+                currentSort = this.value;
+                sortProjects();
+            });
+
+            // Search input
+            document.getElementById('searchInput').addEventListener('input', function() {
+                searchProjects(this.value);
+            });
+
+            // Modal controls
+            document.getElementById('newProjectBtn').addEventListener('click', openProjectModal);
+            document.getElementById('closeModal').addEventListener('click', closeProjectModal);
+            document.getElementById('cancelBtn').addEventListener('click', closeProjectModal);
+            document.getElementById('closeDetailModal').addEventListener('click', closeDetailModal);
+
+            // Form submission
+            document.getElementById('projectForm').addEventListener('submit', submitProject);
+        }
+
+        function renderProjects() {
+            const projectsGrid = document.getElementById('projectsGrid');
+            
+            if (filteredProjects.length === 0) {
+                projectsGrid.innerHTML = `
+                    <div class="col-span-full px-6 py-12 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">No projects found</h3>
+                        <p class="mt-1 text-sm text-gray-500">Try adjusting your search or filter criteria.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            projectsGrid.innerHTML = filteredProjects.map(project => `
+                <div class="project-card ${project.category} bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer" onclick="showProjectDetail('${project.id}')">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(project.category)}">
+                                ${getCategoryText(project.category)}
+                            </span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(project.status)}">
+                                ${getStatusText(project.status)}
+                            </span>
+                        </div>
+                        
+                        <h3 class="text-xl font-semibold text-slate-800 mb-2">${project.name}</h3>
+                        <p class="text-slate-600 text-sm mb-4 line-clamp-3">${project.description}</p>
+                        
+                        <div class="flex items-center justify-between text-sm text-slate-500 mb-4">
+                            <span>Manager: ${project.manager}</span>
+                            <span class="capitalize">${project.priority} priority</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex -space-x-2">
+                                ${project.team.slice(0, 3).map(member => `
+                                    <img class="h-8 w-8 rounded-full border-2 border-white" src="./resources/user-avatars/avatar-${Math.floor(Math.random() * 6) + 1}.jpg" alt="${member}">
+                                `).join('')}
+                                ${project.team.length > 3 ? `<div class="h-8 w-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs font-medium text-gray-600">+${project.team.length - 3}</div>` : ''}
+                            </div>
+                            <div class="text-sm text-slate-500">
+                                ${project.drawings.length} drawings
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getCategoryColor(category) {
+            switch (category) {
+                case 'mechanical': return 'bg-red-100 text-red-800';
+                case 'electrical': return 'bg-blue-100 text-blue-800';
+                case 'plumbing': return 'bg-green-100 text-green-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function getCategoryText(category) {
+            switch (category) {
+                case 'mechanical': return 'Mechanical';
+                case 'electrical': return 'Electrical';
+                case 'plumbing': return 'Plumbing';
+                default: return category;
+            }
+        }
+
+        function getStatusColor(status) {
+            switch (status) {
+                case 'planning': return 'bg-yellow-100 text-yellow-800';
+                case 'design': return 'bg-blue-100 text-blue-800';
+                case 'review': return 'bg-indigo-100 text-indigo-800';
+                case 'approved': return 'bg-green-100 text-green-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function getStatusText(status) {
+            switch (status) {
+                case 'planning': return 'Planning';
+                case 'design': return 'Design';
+                case 'review': return 'Review';
+                case 'approved': return 'Approved';
+                default: return status;
+            }
+        }
+
+        function filterProjects(filter) {
+            currentFilter = filter;
+            
+            if (filter === 'all') {
+                filteredProjects = [...projects];
+            } else {
+                filteredProjects = projects.filter(project => project.category === filter);
+            }
+            
+            sortProjects();
+            renderProjects();
+        }
+
+        function sortProjects() {
+            filteredProjects.sort((a, b) => {
+                switch (currentSort) {
+                    case 'name':
+                        return a.name.localeCompare(b.name);
+                    case 'status':
+                        const statusOrder = { planning: 4, design: 3, review: 2, approved: 1 };
+                        return statusOrder[b.status] - statusOrder[a.status];
+                    case 'category':
+                        return a.category.localeCompare(b.category);
+                    default:
+                        return new Date(b.updatedDate) - new Date(a.updatedDate);
+                }
+            });
+        }
+
+        function searchProjects(query) {
+            if (!query.trim()) {
+                filterProjects(currentFilter);
+                return;
+            }
+            
+            const searchTerm = query.toLowerCase();
+            filteredProjects = projects.filter(project => 
+                project.name.toLowerCase().includes(searchTerm) ||
+                project.description.toLowerCase().includes(searchTerm) ||
+                project.category.toLowerCase().includes(searchTerm) ||
+                project.manager.toLowerCase().includes(searchTerm)
+            );
+            
+            renderProjects();
+        }
+
+        function updateStatistics() {
+            const activeProjects = projects.filter(p => p.status !== 'approved').length;
+            const totalDrawings = projects.reduce((sum, p) => sum + p.drawings.length, 0);
+            const totalComments = projects.reduce((sum, p) => sum + p.comments.length, 0);
+            
+            document.getElementById('activeProjects').textContent = activeProjects;
+            document.getElementById('totalDrawings').textContent = totalDrawings;
+            document.getElementById('totalComments').textContent = totalComments;
+            document.getElementById('teamMembers').textContent = 15;
+        }
+
+        function openProjectModal() {
+            document.getElementById('projectModal').classList.remove('hidden');
+            document.getElementById('projectModal').classList.add('flex');
+            
+            anime({
+                targets: '#projectModal .bg-white',
+                scale: [0.8, 1],
+                opacity: [0, 1],
+                duration: 300,
+                easing: 'easeOutBack'
+            });
+        }
+
+        function closeProjectModal() {
+            anime({
+                targets: '#projectModal .bg-white',
+                scale: [1, 0.8],
+                opacity: [1, 0],
+                duration: 200,
+                easing: 'easeInBack',
+                complete: function() {
+                    document.getElementById('projectModal').classList.add('hidden');
+                    document.getElementById('projectModal').classList.remove('flex');
+                    document.getElementById('projectForm').reset();
+                }
+            });
+        }
+
+        function closeDetailModal() {
+            anime({
+                targets: '#detailModal .bg-white',
+                scale: [1, 0.8],
+                opacity: [1, 0],
+                duration: 200,
+                easing: 'easeInBack',
+                complete: function() {
+                    document.getElementById('detailModal').classList.add('hidden');
+                    document.getElementById('detailModal').classList.remove('flex');
+                }
+            });
+        }
+
+        function submitProject(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('projectName').value;
+            const category = document.getElementById('projectCategory').value;
+            const description = document.getElementById('projectDescription').value;
+            const manager = document.getElementById('projectManager').value;
+            const priority = document.getElementById('priorityLevel').value;
+            
+            // Get selected team members
+            const team = Array.from(document.querySelectorAll('.team-member-checkbox:checked'))
+                .map(cb => cb.value);
+            
+            const newProject = {
+                id: `PROJ${String(projects.length + 1).padStart(3, '0')}`,
+                name: name,
+                category: category,
+                description: description,
+                status: 'planning',
+                priority: priority,
+                manager: manager,
+                team: team,
+                createdDate: new Date().toISOString().split('T')[0],
+                updatedDate: new Date().toISOString().split('T')[0],
+                drawings: [],
+                comments: []
+            };
+            
+            projects.unshift(newProject);
+            filterProjects(currentFilter);
+            updateStatistics();
+            closeProjectModal();
+            
+            // Show success notification
+            if (window.WAGPortal) {
+                window.WAGPortal.showToast('Project created successfully!', 'success');
+            }
+        }
+
+        function showProjectDetail(projectId) {
+            const project = projects.find(p => p.id === projectId);
+            if (!project) return;
+            
+            const detailContent = document.getElementById('detailContent');
+            detailContent.innerHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-3">Project Information</h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Project ID:</span>
+                                    <span class="text-sm text-slate-800">${project.id}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Category:</span>
+                                    <span class="text-sm text-slate-800">${getCategoryText(project.category)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Status:</span>
+                                    <span class="text-sm text-slate-800 capitalize">${getStatusText(project.status)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Priority:</span>
+                                    <span class="text-sm text-slate-800 capitalize">${project.priority}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Manager:</span>
+                                    <span class="text-sm text-slate-800">${project.manager}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Created:</span>
+                                    <span class="text-sm text-slate-800">${formatDate(project.createdDate)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Updated:</span>
+                                    <span class="text-sm text-slate-800">${formatDate(project.updatedDate)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-3">Description</h4>
+                            <p class="text-sm text-slate-600">${project.description}</p>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-3">Team Members</h4>
+                            <div class="space-y-2">
+                                ${project.team.map(member => `
+                                    <div class="flex items-center">
+                                        <img class="h-6 w-6 rounded-full mr-2" src="./resources/user-avatars/avatar-${Math.floor(Math.random() * 6) + 1}.jpg" alt="${member}">
+                                        <span class="text-sm text-slate-700">${member}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-3">Technical Drawings</h4>
+                            <div class="space-y-3">
+                                ${project.drawings.length > 0 ? project.drawings.map(drawing => `
+                                    <div class="border border-gray-200 rounded-lg p-3">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <h5 class="font-medium text-slate-800">${drawing.name}</h5>
+                                            <span class="version-tag px-2 py-1 rounded-full text-xs font-medium">${drawing.version}</span>
+                                        </div>
+                                        <div class="flex items-center justify-between text-sm text-slate-500">
+                                            <span>Uploaded by ${drawing.uploadedBy}</span>
+                                            <span>${formatDate(drawing.uploadedDate)}</span>
+                                        </div>
+                                        <button onclick="viewDrawing('${drawing.id}')" class="mt-2 text-sm text-purple-600 hover:text-purple-800">
+                                            View Drawing
+                                        </button>
+                                    </div>
+                                `).join('') : '<p class="text-sm text-slate-500">No drawings uploaded yet.</p>'}
+                                
+                                <button onclick="uploadDrawing('${project.id}')" class="w-full mt-3 px-4 py-2 border-2 border-dashed border-gray-300 rounded-md text-sm font-medium text-gray-600 hover:border-purple-300 hover:text-purple-600 transition-colors">
+                                    + Upload New Drawing
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-3">Discussion</h4>
+                            <div class="space-y-4 max-h-64 overflow-y-auto">
+                                ${project.comments.length > 0 ? project.comments.map(comment => `
+                                    <div class="comment-thread pl-4">
+                                        <div class="flex items-start space-x-3">
+                                            <img class="h-8 w-8 rounded-full" src="./resources/user-avatars/avatar-${Math.floor(Math.random() * 6) + 1}.jpg" alt="${comment.author}">
+                                            <div class="flex-1">
+                                                <div class="flex items-center justify-between">
+                                                    <h5 class="font-medium text-slate-800">${comment.author}</h5>
+                                                    <span class="text-xs text-slate-500">${formatDate(comment.date)}</span>
+                                                </div>
+                                                <p class="text-sm text-slate-600 mt-1">${comment.text}</p>
+                                                
+                                                ${comment.replies && comment.replies.length > 0 ? `
+                                                    <div class="mt-3 space-y-2">
+                                                        ${comment.replies.map(reply => `
+                                                            <div class="flex items-start space-x-2 ml-4">
+                                                                <img class="h-6 w-6 rounded-full" src="./resources/user-avatars/avatar-${Math.floor(Math.random() * 6) + 1}.jpg" alt="${reply.author}">
+                                                                <div class="flex-1">
+                                                                    <div class="flex items-center justify-between">
+                                                                        <h6 class="font-medium text-slate-700 text-sm">${reply.author}</h6>
+                                                                        <span class="text-xs text-slate-500">${formatDate(reply.date)}</span>
+                                                                    </div>
+                                                                    <p class="text-sm text-slate-600 mt-1">${reply.text}</p>
+                                                                </div>
+                                                            </div>
+                                                        `).join('')}
+                                                    </div>
+                                                ` : ''}
+                                                
+                                                <button onclick="replyToComment('${comment.author}')" class="mt-2 text-xs text-purple-600 hover:text-purple-800">
+                                                    Reply
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('') : '<p class="text-sm text-slate-500">No comments yet.</p>'}
+                                
+                                <div class="mt-4">
+                                    <textarea id="newComment" rows="3" placeholder="Add your comment..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"></textarea>
+                                    <button onclick="addComment('${project.id}')" class="mt-2 px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 transition-colors text-sm">
+                                        Add Comment
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('detailModal').classList.remove('hidden');
+            document.getElementById('detailModal').classList.add('flex');
+            
+            anime({
+                targets: '#detailModal .bg-white',
+                scale: [0.8, 1],
+                opacity: [0, 1],
+                duration: 300,
+                easing: 'easeOutBack'
+            });
+        }
+
+        function viewDrawing(drawingId) {
+            // In a real app, this would open a drawing viewer
+            alert('Drawing viewer would open here');
+        }
+
+        function uploadDrawing(projectId) {
+            // In a real app, this would open a file upload dialog
+            alert('File upload dialog would open here');
+        }
+
+        function addComment(projectId) {
+            const commentText = document.getElementById('newComment').value.trim();
+            if (!commentText) return;
+            
+            const project = projects.find(p => p.id === projectId);
+            if (project) {
+                project.comments.push({
+                    author: getCurrentUser().name,
+                    date: new Date().toISOString().split('T')[0],
+                    text: commentText,
+                    replies: []
+                });
+                
+                project.updatedDate = new Date().toISOString().split('T')[0];
+                showProjectDetail(projectId);
+                
+                if (window.WAGPortal) {
+                    window.WAGPortal.showToast('Comment added successfully!', 'success');
+                }
+            }
+        }
+
+        function replyToComment(author) {
+            const textarea = document.getElementById('newComment');
+            textarea.value = `@${author} `;
+            textarea.focus();
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function getCurrentUser() {
+            // This would normally come from authentication
+            return {
+                name: 'John Smith',
+                role: 'user'
+            };
+        }
+    </script>
+</body>
+</html>

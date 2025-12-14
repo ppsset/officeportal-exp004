@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WAG Portal - Workplace Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hero-bg { background-image: url('./resources/hero-office.jpg'); }
+        .office-bg { background-image: url('./resources/office-bg.jpg'); }
+        .glass-effect { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.1); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .gradient-text { background: linear-gradient(135deg, #10B981, #3B82F6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .notification-badge { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .module-icon { transition: all 0.3s ease; }
+        .module-icon:hover { transform: scale(1.1); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-2xl font-bold text-slate-800">WAG Portal</h1>
+                    </div>
+                </div>
+                
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="index.html" class="bg-slate-100 text-slate-800 px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
+                        <a href="defect-tracker.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Defect Tracker</a>
+                        <a href="leave-request.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Leave Request</a>
+                        <a href="facility-reservation.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Facility Booking</a>
+                        <a href="tech-board.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Tech Board</a>
+                        <a href="suggestion-box.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Suggestion Box</a>
+                        <a href="office-pulse.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Office Pulse</a>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <button id="roleToggle" class="bg-emerald-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-600 transition-colors">
+                        Switch to Manager
+                    </button>
+                    <div class="relative">
+                        <button id="notificationBtn" class="p-2 text-slate-600 hover:text-slate-800 relative">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M9 11h.01M9 8h.01"></path>
+                            </svg>
+                            <span id="notificationBadge" class="notification-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <img id="userAvatar" class="h-8 w-8 rounded-full" src="./resources/user-avatars/avatar-1.jpg" alt="User Avatar">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero-bg bg-cover bg-center relative">
+        <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+            <div class="text-center">
+                <h1 class="text-5xl font-bold text-white mb-6">
+                    Welcome to <span class="gradient-text">WAG Portal</span>
+                </h1>
+                <div class="text-xl text-gray-200 mb-8 max-w-3xl mx-auto">
+                    <span id="typed-text"></span>
+                </div>
+                <div class="flex justify-center space-x-4">
+                    <button onclick="scrollToModules()" class="bg-emerald-500 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-emerald-600 transition-colors">
+                        Explore Modules
+                    </button>
+                    <button onclick="showDemo()" class="bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-slate-800 transition-colors">
+                        Watch Demo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 relative z-10">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Active Requests</p>
+                        <p class="text-2xl font-semibold text-gray-900">24</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-100 text-green-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Completed</p>
+                        <p class="text-2xl font-semibold text-gray-900">156</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Pending</p>
+                        <p class="text-2xl font-semibold text-gray-900">8</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Active Users</p>
+                        <p class="text-2xl font-semibold text-gray-900">142</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="modulesSection" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-slate-800 mb-4">WAG Portal Modules</h2>
+            <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+                Streamline your workplace operations with our comprehensive suite of management tools designed for modern offices.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Defect Tracker -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+                <div class="relative">
+                    <img src="./resources/equipment-printer.jpg" alt="Defect Tracker" class="w-full h-48 object-cover">
+                    <div class="absolute top-4 right-4 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-semibold">
+                        3 New
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="module-icon p-3 rounded-full bg-red-100 text-red-600 mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-slate-800">Defect Tracker</h3>
+                    </div>
+                    <p class="text-slate-600 mb-6">Report and track equipment defects with real-time status updates and automated notifications.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-slate-500">8 Active Issues</span>
+                        <a href="defect-tracker.html" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors">
+                            Manage Issues
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leave Request -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+                <div class="relative">
+                    <img src="./resources/user-avatars/avatar-5.jpg" alt="Leave Request" class="w-full h-48 object-cover">
+                    <div class="absolute top-4 right-4 bg-blue-500 text-white px-2 py-1 rounded-md text-xs font-semibold">
+                        5 Pending
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="module-icon p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-slate-800">Leave Request</h3>
+                    </div>
+                    <p class="text-slate-600 mb-6">Submit and manage leave requests with automated approval workflows and balance tracking.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-slate-500">12 Days Available</span>
+                        <a href="leave-request.html" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors">
+                            Request Leave
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Facility Reservation -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+                <div class="relative">
+                    <img src="./resources/meeting-room-1.jpg" alt="Facility Reservation" class="w-full h-48 object-cover">
+                    <div class="absolute top-4 right-4 bg-green-500 text-white px-2 py-1 rounded-md text-xs font-semibold">
+                        Available
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="module-icon p-3 rounded-full bg-green-100 text-green-600 mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-slate-800">Facility Reservation</h3>
+                    </div>
+                    <p class="text-slate-600 mb-6">Book meeting rooms, equipment, and resources with real-time availability and conflict detection.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-slate-500">6 Rooms Free</span>
+                        <a href="facility-reservation.html" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors">
+                            Book Now
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tech Board -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+                <div class="relative">
+                    <img src="./resources/mep-drawing-1.jpg" alt="Tech Board" class="w-full h-48 object-cover">
+                    <div class="absolute top-4 right-4 bg-purple-500 text-white px-2 py-1 rounded-md text-xs font-semibold">
+                        Active
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="module-icon p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-slate-800">Tech Board</h3>
+                    </div>
+                    <p class="text-slate-600 mb-6">Collaborate on MEP designs with annotation tools, version control, and stakeholder management.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-slate-500">3 Active Projects</span>
+                        <a href="tech-board.html" class="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600 transition-colors">
+                            View Projects
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suggestion Box -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+                <div class="relative">
+                    <img src="./resources/user-avatars/avatar-2.jpg" alt="Suggestion Box" class="w-full h-48 object-cover">
+                    <div class="absolute top-4 right-4 bg-yellow-500 text-white px-2 py-1 rounded-md text-xs font-semibold">
+                        12 Votes
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="module-icon p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10m0 0V6a2 2 0 00-2-2H9a2 2 0 00-2 2v2m0 0v8a2 2 0 002 2h6a2 2 0 002-2V8"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-slate-800">Suggestion Box</h3>
+                    </div>
+                    <p class="text-slate-600 mb-6">Submit ideas for office improvements and vote on community suggestions to drive innovation.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-slate-500">18 Suggestions</span>
+                        <a href="suggestion-box.html" class="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600 transition-colors">
+                            Submit Idea
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Office Pulse -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+                <div class="relative">
+                    <img src="./resources/office-bg.jpg" alt="Office Pulse" class="w-full h-48 object-cover">
+                    <div class="absolute top-4 right-4 bg-indigo-500 text-white px-2 py-1 rounded-md text-xs font-semibold">
+                        New
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="module-icon p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-slate-800">Office Pulse</h3>
+                    </div>
+                    <p class="text-slate-600 mb-6">Stay updated with office news, announcements, events, and important communications.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-slate-500">3 New Updates</span>
+                        <a href="office-pulse.html" class="bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 transition-colors">
+                            View Updates
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Dashboard -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-slate-800 mb-4">Analytics Overview</h2>
+            <p class="text-lg text-slate-600">Real-time insights into your workplace operations and productivity metrics.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Request Trends Chart -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-semibold text-slate-800 mb-4">Request Trends</h3>
+                <div id="requestTrendsChart" style="height: 300px;"></div>
+            </div>
+
+            <!-- Module Usage Chart -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-semibold text-slate-800 mb-4">Module Usage</h3>
+                <div id="moduleUsageChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-semibold text-slate-800">Recent Activity</h3>
+            </div>
+            <div class="divide-y divide-gray-200">
+                <div class="px-6 py-4 flex items-center">
+                    <img class="h-10 w-10 rounded-full mr-4" src="./resources/user-avatars/avatar-3.jpg" alt="User">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-slate-800">Sarah Johnson submitted a leave request</p>
+                        <p class="text-sm text-slate-500">Sick leave for 3 days - Pending approval</p>
+                    </div>
+                    <span class="text-sm text-slate-400">2 min ago</span>
+                </div>
+                
+                <div class="px-6 py-4 flex items-center">
+                    <img class="h-10 w-10 rounded-full mr-4" src="./resources/user-avatars/avatar-4.jpg" alt="User">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-slate-800">Meeting Room A booked by Mike Chen</p>
+                        <p class="text-sm text-slate-500">Tomorrow 2:00 PM - 4:00 PM</p>
+                    </div>
+                    <span class="text-sm text-slate-400">15 min ago</span>
+                </div>
+                
+                <div class="px-6 py-4 flex items-center">
+                    <img class="h-10 w-10 rounded-full mr-4" src="./resources/user-avatars/avatar-5.jpg" alt="User">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-slate-800">Equipment defect reported in Printer #2</p>
+                        <p class="text-sm text-slate-500">Paper jam issue - High priority</p>
+                    </div>
+                    <span class="text-sm text-slate-400">1 hour ago</span>
+                </div>
+                
+                <div class="px-6 py-4 flex items-center">
+                    <img class="h-10 w-10 rounded-full mr-4" src="./resources/user-avatars/avatar-6.jpg" alt="User">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-slate-800">New suggestion submitted to improve office lighting</p>
+                        <p class="text-sm text-slate-500">LED upgrade proposal - 15 votes</p>
+                    </div>
+                    <span class="text-sm text-slate-400">3 hours ago</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 text-white py-8 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-slate-300">&copy; 2025 WAG Portal. Streamlining workplace operations with intelligent management solutions.</p>
+        </div>
+    </footer>
+
+    <!-- Notification Modal -->
+    <div id="notificationModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-lg font-semibold text-slate-800 mb-4">Notifications</h3>
+            <div class="space-y-3">
+                <div class="flex items-start">
+                    <div class="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3"></div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-800">High Priority Defect</p>
+                        <p class="text-sm text-slate-600">Printer #2 requires immediate attention</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3"></div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-800">Leave Request</p>
+                        <p class="text-sm text-slate-600">New leave request from Sarah Johnson</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-2 h-2 bg-green-500 rounded-full mt-2 mr-3"></div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-800">Meeting Confirmed</p>
+                        <p class="text-sm text-slate-600">Boardroom booking confirmed for tomorrow</p>
+                    </div>
+                </div>
+            </div>
+            <button onclick="closeNotificationModal()" class="mt-4 w-full bg-slate-500 text-white py-2 rounded-md hover:bg-slate-600 transition-colors">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>

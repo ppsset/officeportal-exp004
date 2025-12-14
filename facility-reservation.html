@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facility Reservation - WAG Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-effect { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.1); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .facility-card { transition: all 0.3s ease; border: 2px solid transparent; }
+        .facility-card.selected { border-color: #10B981; background-color: #F0FDF4; }
+        .time-slot { transition: all 0.2s ease; }
+        .time-slot.available { background-color: #F0FDF4; border-color: #10B981; }
+        .time-slot.occupied { background-color: #FEE2E2; border-color: #EF4444; cursor: not-allowed; }
+        .time-slot.selected { background-color: #10B981; color: white; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+        .calendar-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; }
+        .calendar-day:hover { background-color: #EBF8FF; }
+        .calendar-day.selected { background-color: #3B82F6; color: white; }
+        .calendar-day.today { background-color: #FEF3C7; }
+        .calendar-day.has-booking { background-color: #F0FDF4; border: 2px solid #10B981; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-2xl font-bold text-slate-800">WAG Portal</h1>
+                    </div>
+                </div>
+                
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="index.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Dashboard</a>
+                        <a href="defect-tracker.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Defect Tracker</a>
+                        <a href="leave-request.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Leave Request</a>
+                        <a href="facility-reservation.html" class="bg-green-100 text-green-700 px-3 py-2 rounded-md text-sm font-medium">Facility Booking</a>
+                        <a href="tech-board.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Tech Board</a>
+                        <a href="suggestion-box.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Suggestion Box</a>
+                        <a href="office-pulse.html" class="text-slate-600 hover:text-slate-800 px-3 py-2 rounded-md text-sm font-medium transition-colors">Office Pulse</a>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <button id="roleToggle" class="bg-emerald-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-600 transition-colors">
+                        Switch to Manager
+                    </button>
+                    <div class="relative">
+                        <button id="notificationBtn" class="p-2 text-slate-600 hover:text-slate-800 relative">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M9 11h.01M9 8h.01"></path>
+                            </svg>
+                            <span id="notificationBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <img id="userAvatar" class="h-8 w-8 rounded-full" src="./resources/user-avatars/avatar-1.jpg" alt="User Avatar">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <div class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-slate-800">Facility Reservation</h1>
+                    <p class="text-slate-600 mt-2">Book meeting rooms, equipment, and shared resources</p>
+                </div>
+                <button id="newBookingBtn" class="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    New Booking
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Facility Gallery -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6">Available Facilities</h2>
+            <div class="splide" id="facilityCarousel">
+                <div class="splide__track">
+                    <ul class="splide__list" id="facilityList">
+                        <!-- Facilities will be populated by JavaScript -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Bookings</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="totalBookings">24</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-100 text-green-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Available Now</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="availableNow">6</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Upcoming Today</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="upcomingToday">3</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Active Users</p>
+                        <p class="text-2xl font-semibold text-gray-900" id="activeUsers">18</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Calendar -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-slate-800">Booking Calendar</h3>
+                <div class="flex items-center space-x-4">
+                    <button id="prevWeek" class="p-2 hover:bg-gray-100 rounded-md">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                    <span id="currentWeek" class="text-sm font-medium text-slate-600"></span>
+                    <button id="nextWeek" class="p-2 hover:bg-gray-100 rounded-md">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <div id="bookingCalendar" class="overflow-x-auto">
+                    <!-- Calendar will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Bookings -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-slate-800">Your Bookings</h3>
+            </div>
+            <div id="currentBookings" class="divide-y divide-gray-200">
+                <!-- Bookings will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div id="bookingModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-slate-800">New Booking</h3>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Facility Selection -->
+                <div>
+                    <h4 class="text-lg font-semibold text-slate-800 mb-4">Select Facility</h4>
+                    <div id="facilitySelection" class="space-y-3">
+                        <!-- Facilities will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Booking Details -->
+                <div>
+                    <form id="bookingForm" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Booking Title</label>
+                            <input id="bookingTitle" type="text" placeholder="e.g., Team Meeting, Client Presentation" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500" required>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                                <input id="bookingDate" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500" required>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Duration (Hours)</label>
+                                <select id="duration" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500" required>
+                                    <option value="">Select Duration</option>
+                                    <option value="0.5">30 minutes</option>
+                                    <option value="1">1 hour</option>
+                                    <option value="1.5">1.5 hours</option>
+                                    <option value="2">2 hours</option>
+                                    <option value="3">3 hours</option>
+                                    <option value="4">4 hours</option>
+                                    <option value="8">Full day</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Time Slots</label>
+                            <div id="timeSlots" class="grid grid-cols-3 gap-2">
+                                <!-- Time slots will be populated by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Number of Attendees</label>
+                            <input id="attendees" type="number" min="1" max="50" value="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Equipment Needed</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="checkbox" class="equipment-checkbox" value="projector" class="mr-2">
+                                    <span class="ml-2 text-sm">Projector</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" class="equipment-checkbox" value="whiteboard" class="mr-2">
+                                    <span class="ml-2 text-sm">Whiteboard</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" class="equipment-checkbox" value="video-conf" class="mr-2">
+                                    <span class="ml-2 text-sm">Video Conference Setup</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" class="equipment-checkbox" value="laptop" class="mr-2">
+                                    <span class="ml-2 text-sm">Laptop/Computer</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Additional Notes</label>
+                            <textarea id="notes" rows="3" placeholder="Any special requirements or notes..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"></textarea>
+                        </div>
+                        
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" id="cancelBookingBtn" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                                Cancel
+                            </button>
+                            <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded-md text-sm font-medium hover:bg-green-600 transition-colors">
+                                Confirm Booking
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 text-white py-8 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-slate-300">&copy; 2025 WAG Portal. Streamlining workplace operations with intelligent management solutions.</p>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+    <script>
+        // Facility Reservation specific functionality
+        let facilities = [];
+        let bookings = [];
+        let selectedFacility = null;
+        let selectedTimeSlot = null;
+        let currentWeekStart = new Date();
+
+        // Sample facility data
+        const sampleFacilities = [
+            {
+                id: 'CONF_A',
+                name: 'Conference Room A',
+                type: 'meeting-room',
+                capacity: 12,
+                location: 'Floor 3, East Wing',
+                image: './resources/meeting-room-1.jpg',
+                equipment: ['projector', 'whiteboard', 'video-conf'],
+                hourlyRate: 0,
+                description: 'Large conference room perfect for team meetings and presentations'
+            },
+            {
+                id: 'CONF_B',
+                name: 'Conference Room B',
+                type: 'meeting-room',
+                capacity: 8,
+                location: 'Floor 2, West Wing',
+                image: './resources/meeting-room-2.jpg',
+                equipment: ['projector', 'whiteboard'],
+                hourlyRate: 0,
+                description: 'Medium-sized conference room ideal for smaller group discussions'
+            },
+            {
+                id: 'ZOOM_1',
+                name: 'Zoom Account 1',
+                type: 'zoom-account',
+                capacity: 100,
+                location: 'Virtual',
+                image: './resources/office-bg.jpg',
+                equipment: ['video-conf', 'recording'],
+                hourlyRate: 0,
+                description: 'Premium Zoom account with recording capabilities'
+            },
+            {
+                id: 'ZOOM_2',
+                name: 'Zoom Account 2',
+                type: 'zoom-account',
+                capacity: 50,
+                location: 'Virtual',
+                image: './resources/office-bg.jpg',
+                equipment: ['video-conf'],
+                hourlyRate: 0,
+                description: 'Standard Zoom account for video conferencing'
+            },
+            {
+                id: 'PRINTER_1',
+                name: 'Color Laser Printer',
+                type: 'office-equipment',
+                capacity: 1,
+                location: 'Floor 1, Reception',
+                image: './resources/equipment-printer.jpg',
+                equipment: ['color-printing', 'duplex'],
+                hourlyRate: 5,
+                description: 'High-quality color laser printer for professional documents'
+            },
+            {
+                id: 'SCANNER_1',
+                name: 'Document Scanner',
+                type: 'office-equipment',
+                capacity: 1,
+                location: 'Floor 1, IT Department',
+                image: './resources/equipment-scanner.jpg',
+                equipment: ['auto-feed', 'duplex-scanning'],
+                hourlyRate: 3,
+                description: 'Professional document scanner with automatic feeder'
+            }
+        ];
+
+        // Sample booking data
+        const sampleBookings = [
+            {
+                id: 'BK001',
+                facilityId: 'CONF_A',
+                title: 'Weekly Team Meeting',
+                date: '2025-01-15',
+                startTime: '09:00',
+                endTime: '10:00',
+                duration: 1,
+                attendees: 8,
+                equipment: ['projector', 'whiteboard'],
+                bookedBy: 'Sarah Johnson',
+                status: 'confirmed',
+                notes: 'Regular team sync meeting'
+            },
+            {
+                id: 'BK002',
+                facilityId: 'ZOOM_1',
+                title: 'Client Presentation',
+                date: '2025-01-16',
+                startTime: '14:00',
+                endTime: '15:30',
+                duration: 1.5,
+                attendees: 5,
+                equipment: ['video-conf', 'recording'],
+                bookedBy: 'Mike Chen',
+                status: 'confirmed',
+                notes: 'Important client presentation - please record'
+            },
+            {
+                id: 'BK003',
+                facilityId: 'PRINTER_1',
+                title: 'Marketing Materials',
+                date: '2025-01-17',
+                startTime: '10:00',
+                endTime: '12:00',
+                duration: 2,
+                attendees: 1,
+                equipment: ['color-printing'],
+                bookedBy: 'Emma Davis',
+                status: 'confirmed',
+                notes: 'Print marketing brochures and flyers'
+            }
+        ];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            facilities = [...sampleFacilities];
+            bookings = [...sampleBookings];
+            initializeFacilityReservation();
+        });
+
+        function initializeFacilityReservation() {
+            renderFacilityCarousel();
+            renderBookingCalendar();
+            renderCurrentBookings();
+            updateStatistics();
+            initializeEventListeners();
+            
+            // Initialize carousel
+            if (document.querySelector('.splide')) {
+                new Splide('.splide', {
+                    type: 'loop',
+                    perPage: 3,
+                    perMove: 1,
+                    gap: '1rem',
+                    breakpoints: {
+                        1024: { perPage: 2 },
+                        768: { perPage: 1 }
+                    }
+                }).mount();
+            }
+            
+            // Initialize animations
+            anime({
+                targets: '.card-hover',
+                translateY: [20, 0],
+                opacity: [0, 1],
+                duration: 600,
+                delay: anime.stagger(100),
+                easing: 'easeOutQuart'
+            });
+        }
+
+        function initializeEventListeners() {
+            // Modal controls
+            document.getElementById('newBookingBtn').addEventListener('click', openBookingModal);
+            document.getElementById('closeModal').addEventListener('click', closeBookingModal);
+            document.getElementById('cancelBookingBtn').addEventListener('click', closeBookingModal);
+
+            // Form submission
+            document.getElementById('bookingForm').addEventListener('submit', submitBooking);
+
+            // Date and duration changes
+            document.getElementById('bookingDate').addEventListener('change', updateTimeSlots);
+            document.getElementById('duration').addEventListener('change', updateTimeSlots);
+
+            // Week navigation
+            document.getElementById('prevWeek').addEventListener('click', () => changeWeek(-1));
+            document.getElementById('nextWeek').addEventListener('click', () => changeWeek(1));
+        }
+
+        function renderFacilityCarousel() {
+            const facilityList = document.getElementById('facilityList');
+            
+            facilityList.innerHTML = facilities.map(facility => `
+                <li class="splide__slide">
+                    <div class="facility-card bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer" onclick="selectFacility('${facility.id}')">
+                        <div class="relative">
+                            <img src="${facility.image}" alt="${facility.name}" class="w-full h-48 object-cover">
+                            <div class="absolute top-4 right-4 bg-green-500 text-white px-2 py-1 rounded-md text-xs font-semibold">
+                                Available
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <h3 class="text-xl font-semibold text-slate-800 mb-2">${facility.name}</h3>
+                            <p class="text-slate-600 text-sm mb-3">${facility.description}</p>
+                            <div class="flex items-center justify-between text-sm text-slate-500 mb-3">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    ${facility.location}
+                                </span>
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    ${facility.capacity}
+                                </span>
+                            </div>
+                            <div class="flex flex-wrap gap-1 mb-4">
+                                ${facility.equipment.map(eq => `
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        ${getEquipmentName(eq)}
+                                    </span>
+                                `).join('')}
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-lg font-semibold text-green-600">
+                                    ${facility.hourlyRate > 0 ? `$${facility.hourlyRate}/hr` : 'Free'}
+                                </span>
+                                <button class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors text-sm">
+                                    Book Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        function getEquipmentName(equipment) {
+            const equipmentNames = {
+                'projector': 'Projector',
+                'whiteboard': 'Whiteboard',
+                'video-conf': 'Video Conf',
+                'recording': 'Recording',
+                'color-printing': 'Color Print',
+                'duplex': 'Duplex',
+                'auto-feed': 'Auto Feed',
+                'duplex-scanning': 'Duplex Scan'
+            };
+            return equipmentNames[equipment] || equipment;
+        }
+
+        function renderBookingCalendar() {
+            const calendar = document.getElementById('bookingCalendar');
+            const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const timeSlots = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+            
+            // Generate week dates
+            const weekDates = [];
+            const startOfWeek = new Date(currentWeekStart);
+            startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1); // Monday
+            
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(startOfWeek);
+                date.setDate(date.getDate() + i);
+                weekDates.push(date);
+            }
+            
+            // Update week display
+            document.getElementById('currentWeek').textContent = 
+                `${formatDate(weekDates[0])} - ${formatDate(weekDates[6])}`;
+            
+            let calendarHTML = `
+                <div class="min-w-full">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="border border-gray-300 p-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Time</th>
+                                ${weekDates.map(date => `
+                                    <th class="border border-gray-300 p-3 text-center text-sm font-medium text-gray-700 bg-gray-50">
+                                        <div>${weekDays[date.getDay() === 0 ? 6 : date.getDay() - 1]}</div>
+                                        <div class="text-xs">${date.getDate()}</div>
+                                    </th>
+                                `).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            timeSlots.forEach(time => {
+                calendarHTML += `
+                    <tr>
+                        <td class="border border-gray-300 p-3 text-sm font-medium text-gray-700 bg-gray-50">${time}</td>
+                        ${weekDates.map(date => {
+                            const dateString = date.toISOString().split('T')[0];
+                            const isBooked = bookings.some(booking => 
+                                booking.date === dateString && 
+                                booking.startTime === time
+                            );
+                            
+                            const cellClass = isBooked ? 
+                                'bg-red-100 border-2 border-red-300' : 
+                                'bg-green-50 border-2 border-green-200 hover:bg-green-100 cursor-pointer';
+                            
+                            return `
+                                <td class="border border-gray-300 p-2 ${cellClass}" 
+                                    ${!isBooked ? `onclick="selectTimeSlot('${dateString}', '${time}')"` : ''}>
+                                    ${isBooked ? '🚫' : '✓'}
+                                </td>
+                            `;
+                        }).join('')}
+                    </tr>
+                `;
+            });
+            
+            calendarHTML += `
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4 flex items-center space-x-4 text-sm">
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-green-50 border-2 border-green-200 rounded mr-2"></div>
+                        <span>Available</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-red-100 border-2 border-red-300 rounded mr-2"></div>
+                        <span>Booked</span>
+                    </div>
+                </div>
+            `;
+            
+            calendar.innerHTML = calendarHTML;
+        }
+
+        function renderCurrentBookings() {
+            const bookingsList = document.getElementById('currentBookings');
+            const currentUser = getCurrentUser().name;
+            const userBookings = bookings.filter(booking => booking.bookedBy === currentUser);
+            
+            if (userBookings.length === 0) {
+                bookingsList.innerHTML = `
+                    <div class="px-6 py-12 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">No bookings found</h3>
+                        <p class="mt-1 text-sm text-gray-500">Start by making your first facility booking.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            bookingsList.innerHTML = userBookings.map(booking => {
+                const facility = facilities.find(f => f.id === booking.facilityId);
+                return `
+                    <div class="px-6 py-4 hover:bg-gray-50">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center mb-2">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Confirmed
+                                    </span>
+                                    <span class="ml-2 text-sm font-medium text-slate-800">${booking.id}</span>
+                                </div>
+                                <h4 class="text-lg font-semibold text-slate-800 mb-1">${booking.title}</h4>
+                                <p class="text-slate-600 text-sm mb-2">
+                                    ${facility ? facility.name : 'Unknown Facility'} • ${booking.attendees} attendee${booking.attendees !== 1 ? 's' : ''}
+                                </p>
+                                <div class="flex items-center text-sm text-slate-500">
+                                    <span>${formatDate(booking.date)}</span>
+                                    <span class="mx-2">•</span>
+                                    <span>${booking.startTime} - ${booking.endTime}</span>
+                                    <span class="mx-2">•</span>
+                                    <span>Booked by ${booking.bookedBy}</span>
+                                </div>
+                            </div>
+                            <div class="ml-4 flex-shrink-0">
+                                <button onclick="cancelBooking('${booking.id}')" class="text-red-600 hover:text-red-800 text-sm font-medium">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateStatistics() {
+            const totalBookings = bookings.length;
+            const availableNow = facilities.filter(f => !bookings.some(b => 
+                b.facilityId === f.id && 
+                b.date === new Date().toISOString().split('T')[0] &&
+                b.startTime <= getCurrentTime() &&
+                b.endTime > getCurrentTime()
+            )).length;
+            
+            const upcomingToday = bookings.filter(b => 
+                b.date === new Date().toISOString().split('T')[0] &&
+                b.startTime > getCurrentTime()
+            ).length;
+            
+            document.getElementById('totalBookings').textContent = totalBookings;
+            document.getElementById('availableNow').textContent = availableNow;
+            document.getElementById('upcomingToday').textContent = upcomingToday;
+            document.getElementById('activeUsers').textContent = 18;
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function getCurrentTime() {
+            const now = new Date();
+            return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        }
+
+        function changeWeek(direction) {
+            currentWeekStart.setDate(currentWeekStart.getDate() + (direction * 7));
+            renderBookingCalendar();
+        }
+
+        function selectTimeSlot(date, time) {
+            selectedTimeSlot = { date, time };
+            document.getElementById('bookingDate').value = date;
+            openBookingModal();
+        }
+
+        function selectFacility(facilityId) {
+            selectedFacility = facilityId;
+            
+            // Update facility selection in modal
+            document.querySelectorAll('.facility-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            const selectedOption = document.querySelector(`[data-facility="${facilityId}"]`);
+            if (selectedOption) {
+                selectedOption.classList.add('selected');
+            }
+            
+            updateTimeSlots();
+        }
+
+        function openBookingModal() {
+            renderFacilitySelection();
+            document.getElementById('bookingModal').classList.remove('hidden');
+            document.getElementById('bookingModal').classList.add('flex');
+            
+            anime({
+                targets: '#bookingModal .bg-white',
+                scale: [0.8, 1],
+                opacity: [0, 1],
+                duration: 300,
+                easing: 'easeOutBack'
+            });
+        }
+
+        function closeBookingModal() {
+            anime({
+                targets: '#bookingModal .bg-white',
+                scale: [1, 0.8],
+                opacity: [1, 0],
+                duration: 200,
+                easing: 'easeInBack',
+                complete: function() {
+                    document.getElementById('bookingModal').classList.add('hidden');
+                    document.getElementById('bookingModal').classList.remove('flex');
+                    document.getElementById('bookingForm').reset();
+                    selectedFacility = null;
+                    selectedTimeSlot = null;
+                }
+            });
+        }
+
+        function renderFacilitySelection() {
+            const facilitySelection = document.getElementById('facilitySelection');
+            
+            facilitySelection.innerHTML = facilities.map(facility => `
+                <div class="facility-option p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${selectedFacility === facility.id ? 'selected' : ''}" 
+                     data-facility="${facility.id}" onclick="selectFacility('${facility.id}')">
+                    <div class="flex items-center">
+                        <img src="${facility.image}" alt="${facility.name}" class="w-16 h-16 object-cover rounded-lg mr-4">
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-slate-800">${facility.name}</h4>
+                            <p class="text-sm text-slate-600">${facility.location}</p>
+                            <div class="flex items-center mt-1">
+                                <span class="text-xs text-slate-500">Capacity: ${facility.capacity}</span>
+                                ${facility.hourlyRate > 0 ? `<span class="ml-2 text-xs font-medium text-green-600">$${facility.hourlyRate}/hr</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateTimeSlots() {
+            const date = document.getElementById('bookingDate').value;
+            const duration = parseFloat(document.getElementById('duration').value);
+            const timeSlotsContainer = document.getElementById('timeSlots');
+            
+            if (!date || !duration || !selectedFacility) {
+                timeSlotsContainer.innerHTML = '<p class="text-sm text-slate-500 col-span-3">Please select a date, duration, and facility</p>';
+                return;
+            }
+            
+            const timeSlots = [
+                '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
+                '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
+                '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'
+            ];
+            
+            timeSlotsContainer.innerHTML = timeSlots.map(time => {
+                const endTime = calculateEndTime(time, duration);
+                const isAvailable = !bookings.some(booking => 
+                    booking.facilityId === selectedFacility &&
+                    booking.date === date &&
+                    isTimeOverlap(time, endTime, booking.startTime, booking.endTime)
+                );
+                
+                const slotClass = isAvailable ? 
+                    'time-slot available p-3 text-center text-sm border rounded-md cursor-pointer hover:bg-green-100' :
+                    'time-slot occupied p-3 text-center text-sm border rounded-md';
+                
+                return `
+                    <div class="${slotClass}" ${isAvailable ? `onclick="selectTimeSlot('${time}')"` : ''}>
+                        ${time}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function calculateEndTime(startTime, duration) {
+            const [hours, minutes] = startTime.split(':').map(Number);
+            const endMinutes = minutes + (duration * 60);
+            const endHours = hours + Math.floor(endMinutes / 60);
+            const finalMinutes = endMinutes % 60;
+            
+            return `${String(endHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
+        }
+
+        function isTimeOverlap(start1, end1, start2, end2) {
+            return start1 < end2 && start2 < end1;
+        }
+
+        function selectTimeSlot(time) {
+            selectedTimeSlot = time;
+            
+            // Update visual selection
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                slot.classList.remove('selected');
+            });
+            
+            event.target.classList.add('selected');
+        }
+
+        function submitBooking(event) {
+            event.preventDefault();
+            
+            if (!selectedFacility || !selectedTimeSlot) {
+                if (window.WAGPortal) {
+                    window.WAGPortal.showToast('Please select a facility and time slot', 'error');
+                }
+                return;
+            }
+            
+            const title = document.getElementById('bookingTitle').value;
+            const date = document.getElementById('bookingDate').value;
+            const duration = parseFloat(document.getElementById('duration').value);
+            const attendees = parseInt(document.getElementById('attendees').value);
+            const notes = document.getElementById('notes').value;
+            
+            // Get selected equipment
+            const selectedEquipment = Array.from(document.querySelectorAll('.equipment-checkbox:checked'))
+                .map(cb => cb.value);
+            
+            const facility = facilities.find(f => f.id === selectedFacility);
+            
+            const newBooking = {
+                id: `BK${String(bookings.length + 1).padStart(3, '0')}`,
+                facilityId: selectedFacility,
+                title: title,
+                date: date,
+                startTime: selectedTimeSlot,
+                endTime: calculateEndTime(selectedTimeSlot, duration),
+                duration: duration,
+                attendees: attendees,
+                equipment: selectedEquipment,
+                bookedBy: getCurrentUser().name,
+                status: 'confirmed',
+                notes: notes
+            };
+            
+            bookings.unshift(newBooking);
+            renderBookingCalendar();
+            renderCurrentBookings();
+            updateStatistics();
+            closeBookingModal();
+            
+            // Show success notification
+            if (window.WAGPortal) {
+                window.WAGPortal.showToast('Booking confirmed successfully!', 'success');
+            }
+        }
+
+        function cancelBooking(bookingId) {
+            if (confirm('Are you sure you want to cancel this booking?')) {
+                bookings = bookings.filter(booking => booking.id !== bookingId);
+                renderBookingCalendar();
+                renderCurrentBookings();
+                updateStatistics();
+                
+                if (window.WAGPortal) {
+                    window.WAGPortal.showToast('Booking cancelled successfully', 'success');
+                }
+            }
+        }
+
+        function getCurrentUser() {
+            // This would normally come from authentication
+            return {
+                name: 'John Smith',
+                role: 'user'
+            };
+        }
+    </script>
+</body>
+</html>
